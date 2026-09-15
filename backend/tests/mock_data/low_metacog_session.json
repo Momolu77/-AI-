@@ -1,0 +1,117 @@
+{
+  "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+  "task_description": "撰写关于人工智能伦理的论文引言",
+  "events": [
+    {
+      "event_id": "f4aa6056-238f-4daa-95b5-f8c2944b8042",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "prompt",
+      "content": "帮我写一篇关于AI伦理的论文引言",
+      "metadata": {
+        "source_area": "task"
+      },
+      "sequence_num": 1,
+      "client_timestamp": 1789383765459,
+      "server_timestamp": "2026-09-14T19:02:45.459741"
+    },
+    {
+      "event_id": "64f5df6b-cdc8-46b1-94f2-e86d6c6d9de2",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "ai_reply",
+      "content": "随着人工智能技术的快速发展，AI伦理问题日益受到关注。本文将探讨AI技术在应用过程中面临的伦理挑战...",
+      "metadata": {
+        "source": "claude"
+      },
+      "sequence_num": 2,
+      "client_timestamp": 1789383767459,
+      "server_timestamp": "2026-09-14T19:02:47.459741"
+    },
+    {
+      "event_id": "f52eb03c-6c1e-4195-86e4-87f3bb86794d",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "edit",
+      "content": "直接复制AI生成的内容，仅修改了几个错别字",
+      "metadata": {
+        "source_area": "task",
+        "triggered_by_ai": true
+      },
+      "sequence_num": 3,
+      "client_timestamp": 1789383770459,
+      "server_timestamp": "2026-09-14T19:02:50.459741"
+    },
+    {
+      "event_id": "084047b6-11f2-42b4-af2a-4f5778ea0885",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "prompt",
+      "content": "再写一段",
+      "metadata": {
+        "source_area": "task"
+      },
+      "sequence_num": 4,
+      "client_timestamp": 1789383780459,
+      "server_timestamp": "2026-09-14T19:03:00.459741"
+    },
+    {
+      "event_id": "0d18788e-6eeb-4df0-a24b-919a143d1f7c",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "ai_reply",
+      "content": "AI伦理涉及算法偏见、隐私保护、责任归属等多个方面。例如，算法偏见可能导致AI系统在决策中表现出不公平...",
+      "metadata": {
+        "source": "claude"
+      },
+      "sequence_num": 5,
+      "client_timestamp": 1789383782459,
+      "server_timestamp": "2026-09-14T19:03:02.459741"
+    },
+    {
+      "event_id": "2f71bee4-2a90-41a5-84ae-d8e920008181",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "edit",
+      "content": "复制粘贴，改了标点符号",
+      "metadata": {
+        "source_area": "task",
+        "triggered_by_ai": true
+      },
+      "sequence_num": 6,
+      "client_timestamp": 1789383786459,
+      "server_timestamp": "2026-09-14T19:03:06.459741"
+    },
+    {
+      "event_id": "4a7c7a82-d555-48a0-b24d-dc108ab47349",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "prompt",
+      "content": "写个结尾",
+      "metadata": {
+        "source_area": "task"
+      },
+      "sequence_num": 7,
+      "client_timestamp": 1789383794459,
+      "server_timestamp": "2026-09-14T19:03:14.459741"
+    },
+    {
+      "event_id": "9f4c817f-d947-4124-b47f-388578a2fc95",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "ai_reply",
+      "content": "因此，本文将系统分析AI伦理问题的现状与挑战，并探讨可行的解决方案，为AI技术的健康发展提供理论支持。",
+      "metadata": {
+        "source": "claude"
+      },
+      "sequence_num": 8,
+      "client_timestamp": 1789383796459,
+      "server_timestamp": "2026-09-14T19:03:16.459741"
+    },
+    {
+      "event_id": "f3971649-1e6b-41dd-926d-85c409e473d2",
+      "session_id": "58eec9f1-fb56-4105-8472-b53c37209f5c",
+      "event_type": "edit",
+      "content": "复制粘贴，完成",
+      "metadata": {
+        "source_area": "task",
+        "triggered_by_ai": true
+      },
+      "sequence_num": 9,
+      "client_timestamp": 1789383798459,
+      "server_timestamp": "2026-09-14T19:03:18.459741"
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+  "task_description": "撰写关于人工智能伦理的论文引言",
+  "events": [
+    {
+      "event_id": "29c17e6d-5fdc-4e5b-ac30-26f8ee9a1137",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "page_view",
+      "content": "任务说明",
+      "metadata": {
+        "duration": 30,
+        "action": "open"
+      },
+      "sequence_num": 1,
+      "client_timestamp": 1789383763460,
+      "server_timestamp": "2026-09-14T19:02:43.460377"
+    },
+    {
+      "event_id": "fe02f77b-82d3-41f4-9656-27c0658c8035",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "prompt",
+      "content": "请帮我写一篇AI伦理论文的引言，要包括背景和研究意义，300字左右。",
+      "metadata": {
+        "source_area": "task"
+      },
+      "sequence_num": 2,
+      "client_timestamp": 1789383793460,
+      "server_timestamp": "2026-09-14T19:03:13.460377"
+    },
+    {
+      "event_id": "e7943e24-0313-435e-90cd-9c88ab73758d",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "ai_reply",
+      "content": "近年来，人工智能技术迅猛发展，在医疗、教育、金融等领域得到广泛应用。然而，AI技术在带来便利的同时，也引发了诸多伦理问题...",
+      "metadata": {
+        "source": "claude"
+      },
+      "sequence_num": 3,
+      "client_timestamp": 1789383796460,
+      "server_timestamp": "2026-09-14T19:03:16.460377"
+    },
+    {
+      "event_id": "0b46f29c-fd10-449f-a4d7-6bb0f41f6ad1",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "focus_switch",
+      "content": "chat → task",
+      "metadata": {
+        "from": "chat",
+        "to": "task",
+        "is_cross_area": true
+      },
+      "sequence_num": 4,
+      "client_timestamp": 1789383804460,
+      "server_timestamp": "2026-09-14T19:03:24.460377"
+    },
+    {
+      "event_id": "7bd1fb43-c615-4704-b124-1f7c82320ac0",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "edit",
+      "content": "调整了部分表述，增加了一句过渡，但整体结构未变",
+      "metadata": {
+        "source_area": "task",
+        "triggered_by_ai": true
+      },
+      "sequence_num": 5,
+      "client_timestamp": 1789383864460,
+      "server_timestamp": "2026-09-14T19:04:24.460377"
+    },
+    {
+      "event_id": "44da2573-c999-4695-a743-2a5238aa091d",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "prompt",
+      "content": "能再补充一些关于算法偏见的内容吗？",
+      "metadata": {
+        "source_area": "task"
+      },
+      "sequence_num": 6,
+      "client_timestamp": 1789383879460,
+      "server_timestamp": "2026-09-14T19:04:39.460377"
+    },
+    {
+      "event_id": "597de33d-483a-43f2-88c0-ba11536c0d4a",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "ai_reply",
+      "content": "算法偏见是AI伦理的核心问题。由于训练数据可能存在偏差，AI系统在性别、种族等方面可能表现出歧视性...",
+      "metadata": {
+        "source": "claude"
+      },
+      "sequence_num": 7,
+      "client_timestamp": 1789383881460,
+      "server_timestamp": "2026-09-14T19:04:41.460377"
+    },
+    {
+      "event_id": "07099f39-7606-4a72-9e8c-549d665055f4",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "focus_switch",
+      "content": "chat → task",
+      "metadata": {
+        "from": "chat",
+        "to": "task",
+        "is_cross_area": true
+      },
+      "sequence_num": 8,
+      "client_timestamp": 1789383887460,
+      "server_timestamp": "2026-09-14T19:04:47.460377"
+    },
+    {
+      "event_id": "4d8f5317-fb69-464b-90a3-0ce323d71639",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "edit",
+      "content": "将算法偏见的内容加入引言，调整了句子顺序",
+      "metadata": {
+        "source_area": "task",
+        "triggered_by_ai": true
+      },
+      "sequence_num": 9,
+      "client_timestamp": 1789383932460,
+      "server_timestamp": "2026-09-14T19:05:32.460377"
+    },
+    {
+      "event_id": "eb3bec80-0363-424a-8051-97b3b1e5c42a",
+      "session_id": "9d3c2f44-a811-464c-84ad-0c25666d1324",
+      "event_type": "verify",
+      "content": "检查了一下字数是否符合要求",
+      "metadata": {
+        "source_area": "task"
+      },
+      "sequence_num": 10,
+      "client_timestamp": 1789383952460,
+      "server_timestamp": "2026-09-14T19:05:52.460377"
+    }
+  ]
+}

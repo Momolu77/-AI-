@@ -1,0 +1,30 @@
+# ═══════════════════════════════════════════════════════
+# Python 依赖包 - 通义千问版本
+# ═══════════════════════════════════════════════════════
+
+# Web 框架
+fastapi==0.115.12
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+websockets==14.1
+
+# 数据库（SQLite + 异步支持）
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+greenlet==3.0.3
+
+# 配置管理
+pydantic==2.10.6
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# AI 模型调用（OpenAI 兼容接口）
+openai==1.59.7
+
+# 数据处理
+numpy==2.2.2
+pandas==2.2.3
+
+# 工具
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
