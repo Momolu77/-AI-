@@ -1,349 +1,139 @@
-# 元认知自适应学习系统
+# 英语教学资源工作台 · 本地开发版
 
-> 基于学习过程日志的元认知状态识别与生成式AI自适应干预系统
+按 [项目开发文档 v1.1](docs/archive/项目开发文档-v1.1.md) 实现。浏览器完成读题、AI 对话、编辑单文件 HTML、手动运行、记录计划和多次提交；FastAPI 将会话、30 类事件、对话、版本和作品保存在本机 SQLite 与文件目录中。
 
-## 🎯 系统概述
+当前默认使用离线 `fake-local-v1`，不会调用付费 API。原始设计、v1.1 归档和现有 v1.2 文档均保留。实现与验收状态见 [开发清单](docs/development-checklist-v1.1.md) 和 [本轮验收记录](docs/acceptance/local-baseline-2026-09-22.md)。
 
-本系统通过实时采集人-AI协作学习过程中的交互数据（对话记录、Prompt行为、修改轨迹等），识别学习者的元认知状态（Planning、Monitoring、Evaluation），并根据状态动态生成个性化干预提示，支持学习者的自我调节学习过程。
+## 1. 本机启动
 
-### 核心功能
+本次开发环境：Windows、Python 3.13.11、Node 24.13.0、npm 11.6.2、Microsoft Edge。依赖首次安装需要网络；安装后 fake 模式只使用本地资源。本机不需要 Docker、Redis 或 AI 密钥。
 
-- **实时交互采集**: WebSocket 实时记录对话、prompt、修改等学习行为
-- **元认知状态识别**: 基于行为特征计算 Planning/Monitoring/Evaluation 三维状态向量
-- **自适应干预决策**: 根据状态变化趋势触发干预（低水平检测、波动检测、策略建议）
-- **生成式AI响应**: 调用阿里云百炼通义千问 API 生成情境化对话和结构化判断
-- **可视化分析**: 实时展示状态曲线、干预历史和交互日志
+在项目根目录打开 PowerShell：
 
-## 🏗️ 技术架构
-
-```
-┌─────────────────────────────────────────────┐
-│           前端 (React + TypeScript)          │
-│   - ChatInterface (对话界面)                 │
-│   - StateVisualization (状态可视化)          │
-│   - WebSocket Client (实时通信)              │
-└──────────────┬──────────────────────────────┘
-               │ HTTP/WebSocket
-┌──────────────┴──────────────────────────────┐
-│         后端 (FastAPI + Python)              │
-│                                              │
-│  ┌─────────────────────────────────────┐    │
-│  │  API Layer                          │    │
-│  │  - /api/sessions (会话管理)         │    │
-│  │  - /ws/session/{id} (WebSocket)     │    │
-│  └─────────────────────────────────────┘    │
-│                                              │
-│  ┌─────────────────────────────────────┐    │
-│  │  Service Layer                      │    │
-│  │  - state_recognizer.py (状态识别)   │    │
-│  │  - intervention.py (干预决策)       │    │
-│  │  - ai_generator.py (AI生成)         │    │
-│  └─────────────────────────────────────┘    │
-│                                              │
-│  ┌─────────────────────────────────────┐    │
-│  │  Data Layer                         │    │
-│  │  - SQLite (持久化存储)              │    │
-│  │  - Memory Cache (状态缓存)          │    │
-│  └─────────────────────────────────────┘    │
-└──────────────┬──────────────────────────────┘
-               │
-       阿里云百炼 API (通义千问)
+```powershell
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r backend/requirements.lock.txt
+npm --prefix frontend ci
+.venv/Scripts/python.exe scripts/local_init.py --env-file .env.local
+.venv/Scripts/python.exe scripts/seed_local.py --env-file .env.local
 ```
 
-## 🚀 快速开始
+`local_init` 仅在密钥为空时生成 JWT 密钥，重复运行不会清库；`seed_local` 重复运行保留三座位的入口。打开其输出的 `http://127.0.0.1:5173/enter?seat=01&token=...`。使用 **127.0.0.1**，不要混用 localhost。
 
-### 前置要求
+分别在两个终端启动：
 
-- Node.js >= 18.0
-- Python >= 3.11
-- 阿里云百炼 API Key（通义千问）
-
-### 1. 克隆项目
-
-```bash
-git clone <repository-url>
-cd 9.13毕业系统
+```powershell
+.venv/Scripts/python.exe -m uvicorn app.main:app --app-dir backend --env-file .env.local --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 2. 后端配置
-
-```bash
-cd backend
-
-# 创建虚拟环境
-python -m venv venv
-venv\Scripts\activate  # Mac/Linux: source venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 配置环境变量
-copy .env.example .env  # Mac/Linux: cp .env.example .env
-# 编辑 .env 填入阿里云百炼 API Key
-
-# 启动服务
-uvicorn main:app --reload
+```powershell
+npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-**获取 API Key**: 访问 [阿里云百炼控制台](https://bailian.console.aliyun.com/) 或 [DashScope](https://dashscope.console.aliyun.com/)
+也可用 `scripts/start_local.ps1` 在隐藏后台进程中启动两个服务并输出座位入口，再用 `scripts/stop_local.ps1` 停止该脚本启动的进程。重复启动时，如果确认两个端口均属于本脚本记录的进程或其子进程，且健康检查通过，会提示“工作台已在运行”并重新显示座位入口。其他端口占用或服务异常会显示端口/PID 和检查建议。进程日志位于 `artifacts/local-*`。
 
-后端运行在 `http://localhost:8000`
+浏览器刷新恢复当前会话和已持久化草稿；运行中的游戏堆栈不会跨刷新保存，需要手动再运行。任务页与工作区之间切换会保留同一 iframe。主动结束后原会话只读，再次打开座位入口创建新会话。复制同一会话标签页时，Web Locks 阻止重复编辑；模拟不同学生请使用独立 BrowserContext 或不同浏览器配置。
 
-### 3. 前端配置
+## 2. 已有功能与约定
 
-```bash
-cd frontend
+- 任务页、12 秒本地示例、播放进度恢复、服务器时间校准、只读座位。
+- Vue 3、Vuetify、Pinia 三栏工作台；CodeMirror 6 提供 HTML 高亮、查找、撤销和重做。
+- 代码本地 800ms 保存、后端每 5 秒检查点；计划 800ms 自动保存。自动保存不会刷新预览。
+- 手动运行先冻结并保存代码，成功才替换 iframe。沙箱不启用 same-origin；消息校验 iframe source、run_id、随机通道和数据格式。
+- 原始日志、同步异常、Promise 异常、有效点击/选择/提交交互；每次运行显示新的控制台，历史记录保留。
+- `.txt/.md/.html/.pdf/.docx` 附件真实解析，默认上限 10 MB。文本需 UTF-8；PDF 必须含可提取文字，扫描件不做 OCR。文件解析失败可重传，不把失败文件送给模型。
+- AI 请求排队（全局 2、每会话 1），SSE 显示回复；传输重试沿用请求编号，用户明确重试使用新编号并记录原请求。断流保留片段，订阅不会再次调用模型。
+- 提交确认时冻结代码与计划，支持未运行作品、继续编辑、重复传输与多次不可变快照。写盘失败保留草稿；启动恢复 pending 提交、未完成 AI 和附件状态。
+- IndexedDB outbox、同步应急日志、逐事件确认、失败队列；30 类契约由服务端验证，系统结果由相应业务服务写入。
+- ZIP 内含 JSONL/CSV、任务版本、对话、附件、代码、计划、提交和文件校验；备份恢复至独立目录。
 
-# 安装依赖
-npm install
+文件扩展名、MIME 和实际格式均会校验；当前没有接入独立杀毒软件。AI 只处理提取文字，不支持图片视觉输入。fake 回复明确标注测试模型，示例词汇不冒充某一真实教材单元。
 
-# 启动开发服务器
-npm run dev
+## 3. 工程结构与接口
+
+```text
+backend/app/api/             HTTP 路由、鉴权与 request_id
+backend/app/domain/          输入 DTO、30 类事件 schema
+backend/app/services/        会话、版本、预览、附件、AI、提交、导出
+backend/app/repositories/    SQLite 连接和事务；WAL/外键/忙等待
+backend/migrations/         编号 SQL 迁移
+backend/tests/              pytest 单元与接口集成
+frontend/src/components/    任务页、AI、CodeMirror、控制台和预览
+frontend/src/stores/         工作台状态、流程与自动保存
+frontend/src/services/      API/SSE、IndexedDB、采集、差分与消息验证
+frontend/tests/             Vitest 与 Playwright
+config/tasks/               本地任务及锁定内容版本
+config/examples/            本地视频，无 CDN
+scripts/                    初始化、seed、启动、导出、恢复与核查
+data/local/                 手工使用的数据（不入源码仓库）
+artifacts/                  自动测试隔离数据、日志、报告与截图
 ```
 
-前端运行在 `http://localhost:5173`
+主接口 `/api/v1`；Vite 代理 `/api`、`/media` 和 `/health`。鉴权用 Bearer JWT。查看接口及 DTO：http://127.0.0.1:8000/docs 。错误包含 `code/message/retryable/request_id`，响应头也带 `X-Request-ID`。
 
-### 4. 验证系统
+业务幂等标识在请求体中显式传递：`event_id`、`request_id`、`run_id`、`submission_id`，版本保存使用 revision。重复标识内容不同会拒绝。同一个 HTTP 请求失败重传必须保留标识与原正文。主动重新运行或确认新版本时分配新标识。
 
-访问 `http://localhost:5173`，创建一个学习会话并开始对话，观察：
-- ✅ AI正常回复（流式输出）
-- ✅ 右侧状态面板实时更新
-- ✅ 状态曲线动态绘制
-- ✅ 触发干预时显示提示卡片
+AI 创建/重试、预览运行和提交同时支持 `Idempotency-Key` 请求头，其值应与正文中的业务编号相同，前端已自动携带；不一致返回 409。批量事件逐个使用 `event_id` 去重，不以整批 HTTP 请求号代替事件编号。
 
-## 📁 项目结构
+`sequence_no` 为 **服务器入库顺序**；`client_sequence_no` 保留客户端动作顺序。业务请求、运行、提交依赖各自编号关联。差分位置和 `content_length_after` 用 **UTF-16 code unit**，与 CodeMirror 一致。导出校验使用相同规则，中文和 emoji 可重放。
 
-```
-.
-├── backend/                    # 后端服务
-│   ├── app/
-│   │   ├── api/               # API路由
-│   │   │   ├── sessions.py    # 会话管理接口
-│   │   │   └── websocket.py   # WebSocket接口
-│   │   ├── models.py          # 数据库模型
-│   │   ├── schemas.py         # Pydantic数据模型
-│   │   ├── services/          # 核心服务
-│   │   │   ├── state_recognizer.py   # 元认知状态识别
-│   │   │   ├── intervention.py       # 干预决策引擎
-│   │   │   └── ai_generator.py       # AI内容生成
-│   │   ├── database.py        # 数据库连接
-│   │   ├── redis_client.py    # 内存缓存
-│   │   └── config.py          # 配置管理
-│   ├── main.py                # FastAPI入口
-│   ├── requirements.txt       # Python依赖
-│   └── .env.example           # 环境变量模板
-│
-├── frontend/                   # 前端应用
-│   ├── src/
-│   │   ├── components/        # React组件
-│   │   │   ├── ChatInterface.tsx
-│   │   │   └── StateVisualization.tsx
-│   │   ├── hooks/             # 自定义Hooks
-│   │   │   └── useWebSocket.ts
-│   │   ├── pages/             # 页面
-│   │   │   ├── HomePage.tsx
-│   │   │   └── SessionPage.tsx
-│   │   ├── types/             # TypeScript类型
-│   │   │   └── index.ts
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── package.json
-│   └── vite.config.ts
-│
-└── README.md                   # 本文档
+## 4. 日常测试
+
+命令均从项目根目录执行：
+
+```powershell
+.venv/Scripts/python.exe -m ruff check backend scripts
+.venv/Scripts/python.exe -m pytest backend/tests/unit backend/tests/integration -q --junitxml=artifacts/backend-results.xml
+npm --prefix frontend run lint
+npm --prefix frontend run typecheck
+npm --prefix frontend run test:unit -- --run --reporter=default --reporter=junit --outputFile=../artifacts/frontend-results.xml
+npm --prefix frontend run build
+npm --prefix frontend run test:e2e
+.venv/Scripts/python.exe scripts/audit_e2e.py
 ```
 
-## 🔧 核心模块说明
+E2E 默认用已安装的 Microsoft Edge（可设置 `PLAYWRIGHT_CHANNEL=chrome`），独占 **5174/8001**，每轮生成新的 `artifacts/e2e-*` 数据目录，不连接 `data/local`。测试期间关闭 HMR 与服务热重载。测试报告为 `artifacts/playwright-report/index.html`，失败保留截图和 trace。`audit_e2e.py` 应在一轮全部通过的 E2E 后运行一次，逐会话导出、重放编辑差分、核对引用/视频计时，并恢复整个测试库到另一个目录。
 
-### 状态识别 (`state_recognizer.py`)
+故障注入使用测试中的临时目录、网络路由拦截、模拟 provider 和文件写入异常，不耗尽实际磁盘。另提供 `scripts/measure_local.py`，对指定隔离测试入口采样 30 次本地 API 时延。
 
-基于交互行为特征提取，计算三维元认知状态向量：
+## 5. 如何逐功能评测
 
-```python
-state = {
-    "planning": 0.0 - 1.0,      # 计划性（prompt长度、问题复杂度）
-    "monitoring": 0.0 - 1.0,    # 监控性（编辑频率、验证行为）
-    "evaluation": 0.0 - 1.0     # 评价性（反思性语言、自我评估）
-}
+按照 [v1.1 第 12 节 A–G](docs/archive/项目开发文档-v1.1.md) 操作。建议为每轮使用新的会话，并记录 session_id（浏览器 `/api/v1/session/me` 响应）和失败现象：
+
+| 场景 | 操作与应观察结果 | 自动证据 |
+|---|---|---|
+| A 读题/视频 | 直接进入；播放、暂停、关闭重开；视频缺失仍能进入 | `media-and-freeze.spec.ts`、导出视频事件核查 |
+| B 制作 | 上传教材文字，发送，复制代码并粘贴，手动运行 | `workflow.spec.ts` 第一例 |
+| C 调试 | 触发点击异常与 Promise 异常，复制错误，再运行 | 浏览器控制台桥接与 pytest preview 用例 |
+| D 计划/保活 | 修改计划、收起，操作游戏，任务往返后游戏计数不变 | 浏览器 iframe 计数断言 |
+| E 提交 | 取消；确认 A 后继续改 B；再次提交 | 延迟真实提交请求的冻结用例 |
+| F 恢复 | 拦截本地 API，编辑/运行；恢复连接，检查补传 | outbox 单元、浏览器中断、写盘失败与重启集成 |
+| G 隔离/归档 | 3 个独立上下文写不同标记，导出、恢复 | 三上下文浏览器测试、`audit_e2e.py` |
+
+**仍需真实人工评测**：Windows Alt-Tab/最小化/视频全屏、中文输入法组合输入、键盘焦点与触摸模拟、连续使用 30 分钟。自动测试通过不能替代这些人工结论。复测时只有“实现 + 自动测试 + 人工/数据核查 + 证据记录”全部满足的清单项才勾选。
+
+## 6. 导出、备份与恢复
+
+结束会话、同步队列归零后导出（导出路径必须是尚不存在的新文件）：
+
+```powershell
+.venv/Scripts/python.exe scripts/export_session.py --env-file .env.local --session-id <session_id> --output artifacts/session-01.zip
+.venv/Scripts/python.exe scripts/validate_export.py --input artifacts/session-01.zip
 ```
 
-### 干预决策 (`intervention.py`)
+导出不包含 JWT 密钥、DeepSeek 密钥和座位入口。备份包含座位入口和全库，供本机恢复使用。**先停止后端，再备份**；运行锁会拒绝对仍在使用的数据目录进行维护。
 
-三类干预触发条件：
-
-1. **低水平干预**: 某维度持续低于阈值
-2. **波动干预**: 状态剧烈变化
-3. **策略建议**: 基于当前状态推荐学习策略
-
-### AI生成 (`ai_generator.py`)
-
-**通义千问版本特性**：
-
-- **主对话**: 使用 `qwen3.8-flash` 流式生成（关闭思考模式）
-- **判断任务**: 使用 `qwen3.7-flash` 结构化输出（温度=0）
-- **上下文管理**: 限制到 24K tokens，超出后自动摘要
-- **持久化**: 记录模型版本、Token用量、请求ID
-
-三种负载分离：
-1. 主对话回复 → `qwen3.8-flash`
-2. 目标明确度、追问、纠错判断 → `qwen3.7-flash`
-3. 干预提示 → 本地模板
-
-## 📊 数据库设计
-
-### 核心表
-
-- **sessions**: 学习会话（用户ID、任务类型、任务描述）
-- **interaction_logs**: 交互日志（消息内容、角色、模型名、Token用量）
-- **metacog_states**: 元认知状态快照（PME分数、置信度）
-- **interventions**: 干预记录（类型、触发原因、内容）
-
-详见 `backend/app/models.py`
-
-## 🔌 API文档
-
-启动后端后访问：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-### 主要接口
-
-```
-POST   /api/sessions              创建新会话
-GET    /api/sessions/{id}         获取会话详情
-WS     /ws/session/{id}           WebSocket连接（实时通信）
+```powershell
+.venv/Scripts/python.exe scripts/backup_local.py --env-file .env.local --output artifacts/local-backup.zip
+.venv/Scripts/python.exe scripts/restore_local.py --input artifacts/local-backup.zip --target data/restored-01
 ```
 
-### WebSocket消息格式
+恢复命令拒绝覆盖现有目录，检查文件哈希、数据库完整性和引用。要启动恢复库，复制 `.env.local` 为 `.env.restored.local`，将 `DATA_DIR` 和 `DATABASE_URL` 都改为恢复目录；用相应 `--env-file` 启动。JWT 密钥不在备份中，保留本机配置或重新生成后从 seat 入口认证。
 
-**客户端 → 服务端**
-```json
-{
-  "event_type": "prompt",
-  "content": "用户输入的内容"
-}
-```
+## 7. AI 配置与后续边界
 
-**服务端 → 客户端（新增流式输出）**
-```json
-{
-  "type": "ai_reply_chunk",  // 流式输出片段
-  "data": {"content": "生成的文本片段"}
-}
+`.env.local` 中 `FAKE_AI_SCENARIO` 支持 `success/slow_stream/first_token_timeout/partial_then_error/rate_limited`。修改后重启后端；只在合成测试会话中切换场景。
 
-{
-  "type": "ai_reply_done",   // 完整回复
-  "data": {"content": "完整的回复内容"}
-}
+真实联调时显式设置 `AI_PROVIDER=deepseek`、`DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL`。密钥只留后端，不写入日志、浏览器或导出。DeepSeek SSE 协议已通过模拟 HTTP 测试，**实际外部服务调用未验证**；不会在真实服务失败时偷偷退回 fake。
 
-{
-  "type": "state_update",    // 状态更新
-  "data": {
-    "planning": 0.65,
-    "monitoring": 0.42,
-    "evaluation": 0.0
-  }
-}
-
-{
-  "type": "intervention",    // 干预提示
-  "data": {
-    "type": "planning_low",
-    "reason": "规划维度持续低于阈值",
-    "content": "建议先明确写作目标..."
-  }
-}
-```
-
-## 🧪 测试
-
-### 后端测试
-```bash
-cd backend
-pytest
-```
-
-### 前端测试
-```bash
-cd frontend
-npm test
-```
-
-## 📝 开发指南
-
-### 添加新的元认知特征
-
-1. 在 `state_recognizer.py` 的 `extract_features()` 中添加特征提取逻辑
-2. 在 `compute_metacog_state()` 中更新状态计算公式
-3. 更新 `MetacogState` 模型（如需持久化新字段）
-
-### 添加新的干预类型
-
-1. 在 `intervention.py` 中定义新的触发条件
-2. 在 `ai_generator.py` 中添加对应的模板
-3. 前端 `StateVisualization.tsx` 添加UI展示逻辑
-
-### 自定义AI提示词
-
-编辑 `ai_generator.py` 中的 `SYSTEM_PROMPT` 和各干预类型的提示模板。
-
-## 🐛 故障排查
-
-### 问题1: "创建会话失败"
-
-**原因**: 后端未启动或 `.env` 配置错误
-
-**解决**:
-1. 检查后端是否运行: 访问 http://localhost:8000
-2. 检查 `.env` 文件中 `DASHSCOPE_API_KEY` 是否填写
-
-### 问题2: AI不回复
-
-**原因**: API Key 无效或余额不足
-
-**解决**:
-1. 访问 [阿里云百炼控制台](https://bailian.console.aliyun.com/) 检查余额
-2. 重新生成 API Key 并更新 `.env`
-
-### 问题3: 状态不更新
-
-**原因**: WebSocket 连接断开
-
-**解决**:
-1. 打开浏览器开发者工具 → Network → WS 查看连接状态
-2. 重启前端: `npm run dev`
-
-## 🔄 版本历史
-
-### v2.0.0-qwen (2026-09-14)
-- ✨ 迁移到阿里云百炼（通义千问）
-- ✨ 新增流式输出支持
-- ✨ 上下文管理（24K tokens限制 + 自动摘要）
-- ✨ 持久化 AI 消息和元数据
-- ✨ 分离三种负载（主对话/判断/干预）
-- 🗑️ 移除 PostgreSQL 和 Redis 依赖
-- 📝 使用 SQLite + 内存缓存
-
-### v1.0.0 (2026-09-13)
-- 🎉 初始版本
-- ✅ Anthropic Claude 集成
-- ✅ 元认知状态识别
-- ✅ 自适应干预决策
-
-## 📄 许可证
-
-本项目仅用于学术研究和毕业设计，未经授权不得用于商业用途。
-
-## 👥 贡献者
-
-- 开发者: [Your Name]
-- 指导教师: [Advisor Name]
-
-## 📮 联系方式
-
-如有问题或建议，请提交 Issue 或联系: [your-email@example.com]
-
----
-
-**系统版本**: v2.0.0-qwen  
-**最后更新**: 2026-09-14
+当前是单 worker 本地版本。真实教室并发、局域网、安全发布包、教师后台、希沃设备与长期运维均保留到部署阶段。iframe 无法保证隔离死循环占满浏览器线程，关闭卡死标签页后只能恢复已持久化草稿。

@@ -1,0 +1,13 @@
+{
+  "task_id": "task-test",
+  "version": "local-v1.1-20260922",
+  "title": "为一节英语课，制作一个词汇游戏",
+  "description": "选择真实教材中的一个单元，与 AI 协作制作一份学生可以参与的英语词汇教学游戏。你可以随时查看任务、记录计划、修改代码并运行预览。",
+  "constraints": [
+    "注明真实教材的版本、年级与单元，使用该单元的 8–10 个真实词汇。",
+    "提交一个包含 HTML、CSS 和 JavaScript 的 HTML 文件，资源内嵌，能够离线运行。",
+    "同时支持鼠标点击和触摸操作，单轮游戏控制在 5 分钟以内。",
+    "让游戏规则、反馈和学习目标清晰可见。提交前可在右侧预览中自行体验。"
+  ],
+  "examples": [{"id":"demo-local","title":"本地交互示意","description":"12 秒的操作示意，仅展示交互形式，不是教材内容模板。","url":"/media/examples/demo-local","file":"demo.webm","duration":12}]
+}

@@ -1,0 +1,4 @@
+<!DOCTYPE html><html lang="zh-CN"><meta charset="UTF-8"><title>词汇翻牌</title>
+<style>body{font:20px system-ui;text-align:center;background:#f4f7f5;color:#21372f;padding:24px}button{font:inherit;background:white;border:2px solid #32745b;border-radius:12px;padding:20px;margin:6px;min-width:120px;touch-action:manipulation}#feedback{min-height:2em}</style>
+<h1>词汇翻牌</h1><p>操作示意：点击卡片查看含义。正式作品请使用选定教材单元的词汇。</p><div id="cards"></div><p id="feedback">选择一张卡片</p><p>已探索 <span id="count">0</span> 张</p>
+<script>const words=[['apple','苹果'],['banana','香蕉'],['orange','橙子'],['pear','梨'],['grape','葡萄'],['peach','桃子'],['lemon','柠檬'],['mango','芒果']];let count=0;for(const [en,zh] of words){const b=document.createElement('button');b.textContent=en;b.onclick=()=>{document.getElementById('feedback').textContent=en+' · '+zh;document.getElementById('count').textContent=++count};document.getElementById('cards').append(b)}console.log('游戏已就绪');</script></html>
