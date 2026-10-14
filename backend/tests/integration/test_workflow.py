@@ -8,7 +8,7 @@ from app.main import create_app
 from app.services.exporting import backup, export_session, restore, validate_export
 from fastapi.testclient import TestClient
 
-from backend.tests.conftest import enter, now
+from backend.tests.conftest import enter, now, occurrence
 
 
 def identifier():
@@ -17,7 +17,7 @@ def identifier():
 
 def event(name="planner_opened", payload=None, **extra):
     return {
-        "event_id": identifier(),
+        **occurrence(),
         "event_name": name,
         "actor": "student",
         "occurred_at": now(),
@@ -28,6 +28,11 @@ def event(name="planner_opened", payload=None, **extra):
 
 
 def send(client, headers, path, body):
+    if path == "/session/end" and body is None:
+        body = occurrence()
+    if path in {"/workbench/preview/run", "/submissions"} or path.endswith("/interaction"):
+        for key, value in occurrence().items():
+            body.setdefault(key, value)
     result = client.post("/api/v1" + path, headers=headers, json=body)
     assert result.status_code == 200, result.text
     return result.json()
@@ -79,7 +84,7 @@ def test_session_event_outbox_idempotency_and_end(client):
         rows = conn.execute(
             "SELECT * FROM events WHERE session_id=? ORDER BY sequence_no", (info["id"],)
         ).fetchall()
-    assert rows[0]["event_name"] == "task_started"
+    assert [r["event_name"] for r in rows[:2]] == ["task_prerequisite_completed", "task_started"]
     assert [r["sequence_no"] for r in rows] == list(range(1, len(rows) + 1))
     assert sum(r["event_name"] == "task_ended" for r in rows) == 1
 
@@ -98,7 +103,9 @@ def test_revisions_runs_errors_isolation(client):
     assert (
         html.status_code == 200
         and content in html.text
-        and "sandbox allow-scripts" in html.headers["content-security-policy"]
+        and "sandbox allow-scripts allow-forms" in html.headers["content-security-policy"]
+        and "form-action 'none'" in html.headers["content-security-policy"]
+        and "allow-same-origin" not in html.headers["content-security-policy"]
     )
     assert (client.app.state.core.settings.data_dir / saved["content_ref"]).read_text(
         encoding="utf-8"
@@ -149,6 +156,10 @@ def test_revisions_runs_errors_isolation(client):
 
 def ai_command(**kwargs):
     return {
+        **occurrence(),
+        "draft_revision": 0,
+        "reference_ids": [],
+        "base_code_revision": 0,
         "request_id": identifier(),
         "draft_id": identifier(),
         "message_text": "生成游戏",
@@ -223,7 +234,7 @@ def test_attachment_real_parse_and_ai_stream(client):
     ],
 )
 def test_ai_failures_partial_and_explicit_retry(client, scenario, error_type, partial):
-    _, headers = enter(client)
+    info, headers = enter(client)
     client.app.state.core.settings.fake_scenario = scenario
     cmd = ai_command()
     req = send(client, headers, "/ai/requests", cmd)
@@ -231,14 +242,17 @@ def test_ai_failures_partial_and_explicit_retry(client, scenario, error_type, pa
     assert result["request"]["error"]["error_type"] == error_type
     assert bool(result["response"]["response_text"]) is partial
     client.app.state.core.settings.fake_scenario = "success"
-    retry_cmd = ai_command(retry_of_request_id=req["id"])
+    client.app.state.core.save(info["id"], "code", "<p>edited after failure</p>", 1)
+    retry_cmd = ai_command(draft_id=cmd["draft_id"], retry_of_request_id=req["id"])
     retry = send(client, headers, f"/ai/requests/{req['id']}/retry", retry_cmd)
+    assert retry["base_code"] == req["base_code"] == ""
     assert retry["id"] != req["id"] and retry["command"]["retry_of_request_id"] == req["id"]
     assert finish_ai(client, headers, retry["id"])["request"]["status"] == "SUCCEEDED"
 
 
 def submission(code="作品 A", revision=1, **extra):
     return {
+        **occurrence(),
         "submission_id": identifier(),
         "snapshot_id": identifier(),
         "code": code,
@@ -307,7 +321,7 @@ def test_write_failure_is_not_success_and_preview_not_replaced(client, monkeypat
     response = client.post(
         "/api/v1/workbench/preview/run",
         headers=headers,
-        json={"content": "A", "revision": 1, "run_id": identifier(), "occurred_at": now()},
+        json={**occurrence(), "content": "A", "revision": 1, "run_id": identifier()},
     )
     assert response.status_code == 503 and "url" not in response.json()
 
@@ -338,7 +352,7 @@ def test_concurrent_event_batches(client):
         rows = conn.execute(
             "SELECT sequence_no FROM events WHERE session_id=? ORDER BY sequence_no", (info["id"],)
         ).fetchall()
-    assert [r[0] for r in rows] == list(range(1, 22))
+    assert [r[0] for r in rows] == list(range(1, 23))
 
 
 def test_three_ai_sessions_queue_with_two_global_slots(settings):
@@ -386,7 +400,11 @@ def test_three_ai_sessions_queue_with_two_global_slots(settings):
         for (_, headers), request in zip(clients, requests):
             result = finish_ai(client, headers, request["id"])
             assert result["response"]["response_text"] == "第一段完成"
-        assert provider.peak == 2 and set(provider.inputs) == {"seat-0", "seat-1", "seat-2"}
+        assert provider.peak == 2 and set(x.split("\n当前代码：")[0] for x in provider.inputs) == {
+            "seat-0",
+            "seat-1",
+            "seat-2",
+        }
 
 
 def test_code_revision_database_busy_and_backup_lock(client):

@@ -15,9 +15,10 @@ from app.settings import Settings
 from docx import Document
 
 
-def sample(schema):
+def sample(schema, definitions=None):
+    definitions = definitions or {}
     if "anyOf" in schema:
-        return sample(next(s for s in schema["anyOf"] if s.get("type") != "null"))
+        return sample(next(s for s in schema["anyOf"] if s.get("type") != "null"), definitions)
     if "const" in schema:
         return schema["const"]
     if "enum" in schema:
@@ -26,11 +27,12 @@ def sample(schema):
     if kind == "string":
         return (
             "2026-09-22T08:00:00+00:00"
-            if schema.get("title") in {"Edit Started At", "Last Edit At"}
+            if schema.get("title")
+            in {"Edit Started At", "Last Edit At", "Completed At", "Displayed At"}
             else "sample"
         )
     if kind == "integer":
-        return 0
+        return schema.get("minimum", 0)
     if kind == "number":
         return 0.0
     if kind == "boolean":
@@ -47,14 +49,18 @@ def sample(schema):
             ]
         return []
     if "$ref" in schema:
-        return {"start": 0, "end": 0}
+        return sample(definitions[schema["$ref"].split("/")[-1]], definitions)
+    if kind == "object":
+        return {k: sample(v, definitions) for k, v in schema["properties"].items()}
     return None
 
 
 @pytest.mark.parametrize("name", list(FIELDS))
-def test_all_thirty_contracts_accept_minimum_and_reject_missing_extra_and_type(name):
+def test_all_forty_nine_contracts_accept_minimum_and_reject_missing_extra_and_type(name):
     schema = REGISTRY[name].model_json_schema()
-    payload = {key: sample(value) for key, value in schema["properties"].items()}
+    payload = {
+        key: sample(value, schema.get("$defs", {})) for key, value in schema["properties"].items()
+    }
     assert validate_payload(name, payload) == payload
     with pytest.raises(ValueError):
         validate_payload(name, {**payload, "unexpected": 1})
@@ -64,7 +70,7 @@ def test_all_thirty_contracts_accept_minimum_and_reject_missing_extra_and_type(n
             validate_payload(name, {k: v for k, v in payload.items() if k != first})
         with pytest.raises(ValueError):
             validate_payload(name, {**payload, first: {"bad": "type"}})
-    assert len(FIELDS) == 30
+    assert len(FIELDS) == 49
 
 
 def test_jwt_and_clock_expiry(settings):
@@ -73,7 +79,29 @@ def test_jwt_and_clock_expiry(settings):
     core = Core(settings, lambda: clock[0])
     core.initialize()
     token = core.seed()["01"]
-    info = core.bootstrap("01", token)
+    from app.domain.commands import Occurrence, Prerequisite
+
+    from backend.tests.conftest import occurrence
+
+    entry = core.collection.entry("01", token)
+    info = core.collection.prepare(
+        core.collection.identity(entry["token"]), settings.task_id, None, "test-writer"
+    )
+    with core.db.read() as conn:
+        session = core.db.session(conn, info["id"])
+    task = core.collection.task(session)
+    core.collection.prerequisite(
+        info["id"],
+        Prerequisite(
+            **occurrence(),
+            version=task["prerequisite"]["version"],
+            responses=[
+                {"question_id": q["id"], "answer_value": q["options"][0]["value"]}
+                for q in task["prerequisite"]["questions"]
+            ],
+        ),
+    )
+    core.collection.start(info["id"], Occurrence(**occurrence()))
     assert core.authenticate("Bearer " + info["token"])["id"] == info["id"]
     with pytest.raises(DomainError):
         core.authenticate(info["token"] + "tampered")
@@ -99,7 +127,7 @@ def test_jwt_and_clock_expiry(settings):
             "SELECT actor,payload_json FROM events WHERE event_name='task_ended'"
         ).fetchall()
     assert len(rows) == 1 and rows[0]["actor"] == "system"
-    assert json.loads(rows[0]["payload_json"])["end_reason"] == "timeout"
+    assert json.loads(rows[0]["payload_json"])["end_reason"] == "timeout_unobserved"
 
 
 def test_real_parsing_and_format_validation(settings):

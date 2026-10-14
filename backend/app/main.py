@@ -39,6 +39,7 @@ def create_app(settings=None, clock=None, provider=None):
             core.initialize()
             app.state.core = core
             app.state.preview = PreviewService(core)
+            app.state.preview.recover()
             app.state.attachments = AttachmentService(core)
             app.state.attachments.recover()
             app.state.submissions = SubmissionService(core)

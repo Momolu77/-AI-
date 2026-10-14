@@ -10,6 +10,22 @@ beforeEach(() => {
 it('发送按钮反映空输入、附件处理、失败与在途请求', () => {
   const store = useWorkbench()
   expect(store.sendBlock).toBeTruthy()
+  store.session = {
+    id: 's',
+    session_id: 's',
+    participant_id: 'p',
+    seat_no: '01',
+    task_id: 't',
+    task_version: 'v',
+    status: 'ACTIVE',
+    prerequisite: null,
+    schema_version: 'teaching-workbench-events-v1.3',
+    writer_id: 'w',
+    started_at: '',
+    ended_at: null,
+    server_now: '',
+    heartbeat_interval_sec: 15,
+  }
   store.editDraft('hello')
   expect(store.sendBlock).toBe('')
   const item: Attachment = { id: 'file', file_name: 'unit.txt', file_size: 3, status: 'PROCESSING' }
@@ -25,6 +41,19 @@ it('发送按钮反映空输入、附件处理、失败与在途请求', () => {
     status: 'STREAMING',
     response_id: 'response',
     command: {
+      event_id: 'event',
+      transport: {
+        producer_id: 'browser',
+        producer_seq: 1,
+        raw_time: null,
+        monotonic_ms: null,
+        clock_calibration_id: null,
+        time_source: 'client_clock',
+        causal_parent_ids: [],
+      },
+      draft_revision: 0,
+      reference_ids: [],
+      base_code_revision: 0,
       request_id: 'request',
       draft_id: 'draft',
       message_text: 'hi',

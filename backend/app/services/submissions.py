@@ -21,6 +21,8 @@ class SubmissionService:
                     raise DomainError("ID_CONFLICT", "提交编号已被不同内容使用。", 409)
                 return old
             c.active(conn, sid)
+            if any(row["status"] == "PENDING" for row in c.db.all(conn, "submissions", sid)):
+                raise DomainError("SUBMISSION_PENDING", "请先核对上一份提交结果。", 409, True)
             if c.db.get(conn, "snapshots", data["snapshot_id"]):
                 raise DomainError("ID_CONFLICT", "快照编号已存在。", 409)
             if conn.execute(
@@ -34,7 +36,9 @@ class SubmissionService:
                 "command": data,
                 "status": "PENDING",
                 "snapshot_id": data["snapshot_id"],
+                "submission_no": len(c.db.all(conn, "submissions", sid)) + 1,
                 "created_at": c.now(),
+                "design_rationale": data["design_rationale"],
             }
             c.db.put(conn, "submissions", subid, sid, body)
             c.emit(
@@ -45,7 +49,7 @@ class SubmissionService:
                     k: data[k]
                     for k in ("submission_id", "code_revision", "plan_revision", "snapshot_id")
                 },
-                occurred_at=data["occurred_at"],
+                **c.occurrence(data),
             )
         return self.finish({"id": subid, "session_id": sid, **body})
 
@@ -69,6 +73,12 @@ class SubmissionService:
                 }
                 atomic_write(staging / "index.html", d["code"])
                 atomic_write(staging / "plan.txt", d["plan"])
+                if d.get("design_rationale") is not None:
+                    manifest["files"]["design_rationale.txt"] = digest(d["design_rationale"])
+                    atomic_write(staging / "design_rationale.txt", d["design_rationale"])
+                manifest["design_rationale_status"] = (
+                    "provided" if d.get("design_rationale", "") else "missing"
+                )
                 atomic_write(staging / "manifest.json", encode(manifest))
                 checksums = {**manifest["files"], "manifest.json": digest(encode(manifest))}
                 atomic_write(
@@ -95,6 +105,9 @@ class SubmissionService:
                     "checksums_ref": f"{relative}/checksums.sha256",
                     "sha256": digest(d["code"]),
                     "created_at": c.now(),
+                    "design_rationale_ref": f"{relative}/design_rationale.txt"
+                    if d.get("design_rationale") is not None
+                    else None,
                 }
                 c.db.put(conn, "snapshots", d["snapshot_id"], sid, snapshot)
                 submission.update(
@@ -139,7 +152,7 @@ class SubmissionService:
         manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
         for filename, sha in manifest["files"].items():
             if (
-                filename not in {"index.html", "plan.txt"}
+                filename not in {"index.html", "plan.txt", "design_rationale.txt"}
                 or digest((folder / filename).read_bytes()) != sha
             ):
                 raise ValueError("快照校验失败")
@@ -147,6 +160,12 @@ class SubmissionService:
             folder / "plan.txt"
         ).read_text(encoding="utf-8") != command["plan"]:
             raise ValueError("快照与确认内容不一致")
+        if (
+            command.get("design_rationale") is not None
+            and (folder / "design_rationale.txt").read_text(encoding="utf-8")
+            != command["design_rationale"]
+        ):
+            raise ValueError("设计说明与确认内容不一致")
 
     def recover(self):
         with self.core.db.read() as conn:

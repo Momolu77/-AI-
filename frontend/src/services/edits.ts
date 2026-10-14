@@ -14,6 +14,8 @@ export function diff(before: string, after: string): EditChange | null {
   const inserted_text = after.slice(start, endAfter),
     deleted_text = before.slice(start, endBefore)
   return {
+    base_revision: 0,
+    result_revision: 1,
     operation: inserted_text ? (deleted_text ? 'replace' : 'insert') : 'delete',
     inserted_text,
     deleted_text,
@@ -38,7 +40,7 @@ export class EditBuffer {
   data: BufferData = { changes: [], base: 0, started: '', last: '' }
   add(change: EditChange, base: number, now: string) {
     if (!this.data.changes.length) this.data = { changes: [], base, started: now, last: now }
-    this.data.changes.push(change)
+    this.data.changes.push({ ...change, base_revision: base, result_revision: base + 1 })
     this.data.last = now
   }
   take() {

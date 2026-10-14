@@ -41,6 +41,17 @@ class FakeProvider:
             + (ROOT / "tests/fixtures/game.html").read_text(encoding="utf-8")
             + "\n```"
         )
+        text += (
+            "\n```proposal\n"
+            + json.dumps(
+                {
+                    "title": "本地测试：完整页面提议",
+                    "code": (ROOT / "tests/fixtures/game.html").read_text(encoding="utf-8"),
+                },
+                ensure_ascii=False,
+            )
+            + "\n```"
+        )
         for i in range(0, len(text), 48):
             await asyncio.sleep(0.12 if scenario == "slow_stream" else 0.008)
             yield text[i : i + 48]
@@ -113,6 +124,9 @@ class AIService:
         )
         self.semaphore = asyncio.Semaphore(core.settings.ai_concurrency)
         self.tasks = {}
+        from app.services.proposals import ProposalService
+
+        self.proposals = ProposalService(core)
 
     def create(self, sid, command):
         c, d = self.core, command.model_dump()
@@ -122,17 +136,25 @@ class AIService:
                 if old["session_id"] != sid or old["command"] != d:
                     raise DomainError("ID_CONFLICT", "请求编号已被不同内容使用。", 409)
                 return old
-            c.active(conn, sid)
+            session = c.active(conn, sid)
             if any(
                 r["status"] in {"QUEUED", "STREAMING"} for r in c.db.all(conn, "ai_requests", sid)
             ):
                 raise DomainError("AI_BUSY", "当前回复尚未结束。", 409)
-            if not d["message_text"].strip() and not d["attachment_ids"]:
+            if not d["message_text"].strip() and not d["attachment_ids"] and not d["reference_ids"]:
                 raise DomainError("EMPTY_MESSAGE", "请输入文字或添加可用附件。")
             attachments = [
                 c.owned(conn, "attachments", object_id, sid) for object_id in d["attachment_ids"]
             ]
-            if any(item["status"] != "READY" for item in attachments):
+            if any(
+                item["status"] != "READY"
+                and not (
+                    d["retry_of_request_id"]
+                    and item["status"] == "REMOVED"
+                    and item.get("storage_ref")
+                )
+                for item in attachments
+            ):
                 raise DomainError(
                     "ATTACHMENT_NOT_READY", "附件未处理完成，请重试或移除失败附件。", 409
                 )
@@ -140,12 +162,108 @@ class AIService:
                 previous = c.owned(conn, "ai_requests", d["retry_of_request_id"], sid)
                 if previous["status"] != "FAILED":
                     raise DomainError("NOT_RETRYABLE", "仅失败请求可以重试。", 409)
+                for key in (
+                    "draft_id",
+                    "draft_revision",
+                    "message_text",
+                    "attachment_ids",
+                    "reference_ids",
+                    "base_code_revision",
+                ):
+                    if previous["command"].get(key) != d[key]:
+                        raise DomainError("RETRY_MISMATCH", "重试必须沿用原请求内容与来源。", 409)
+            draft = c.db.get(conn, "request_drafts", d["draft_id"])
+            if draft and draft["session_id"] != sid:
+                raise DomainError("NOT_FOUND", "草稿不存在。", 404)
+            revision_id = f"{d['draft_id']}-{d['draft_revision']}"
+            revision = c.db.get(conn, "draft_revisions", revision_id)
+            if revision and (
+                revision["session_id"] != sid or revision["content"] != d["message_text"]
+            ):
+                raise DomainError("REVISION_CONFLICT", "发送文字与草稿历史版本不一致。", 409)
+            if not revision:
+                c.db.put(
+                    conn,
+                    "draft_revisions",
+                    revision_id,
+                    sid,
+                    {
+                        "draft_id": d["draft_id"],
+                        "revision": d["draft_revision"],
+                        "content": d["message_text"],
+                    },
+                )
+            if not draft or draft["revision"] <= d["draft_revision"]:
+                c.db.put(
+                    conn,
+                    "request_drafts",
+                    d["draft_id"],
+                    sid,
+                    {
+                        "content": d["message_text"],
+                        "revision": d["draft_revision"],
+                        "attachment_ids": d["attachment_ids"],
+                        "reference_ids": d["reference_ids"],
+                        "updated_at": c.now(),
+                    },
+                )
+            references = [
+                c.owned(conn, "resource_references", rid, sid) for rid in d["reference_ids"]
+            ]
+            for reference in references:
+                if reference["draft_id"] != d["draft_id"] or (
+                    reference["status"] != "ACTIVE" and not d["retry_of_request_id"]
+                ):
+                    raise DomainError("REFERENCE_MISMATCH", "引用不属于当前请求。")
+                resource = c.collection.resource(
+                    session, reference["resource_id"], reference["resource_version"]
+                )
+                if resource["ai_input_status"] != "ready":
+                    raise DomainError("RESOURCE_UNSUPPORTED", "资源不能输入当前模型。")
+                text = reference.get("extracted_text")
+                if reference.get("reference_mode") == "current_page":
+                    page = next(
+                        (p for p in resource.get("pages", []) if p["page"] == reference["page"]),
+                        None,
+                    )
+                    if not page or page["ai_input_status"] != "ready" or text != page["text"]:
+                        raise DomainError("PAGE_UNSUPPORTED", "引用页内容无法核对。")
+                elif text is None:
+                    text = resource["extracted_text"]  # Historical resource-level reference.
+                attachments.append(
+                    {
+                        "file_name": resource["title"]
+                        + (
+                            f" · 文件第{reference['page']}页"
+                            if reference.get("reference_mode") == "current_page"
+                            else ""
+                        ),
+                        "extracted_text": text,
+                        "reference_id": reference["reference_id"],
+                        "resource_id": reference["resource_id"],
+                        "resource_version": reference["resource_version"],
+                        "page": reference["page"],
+                        "reference_mode": reference.get("reference_mode", "resource"),
+                    }
+                )
+            base_row = conn.execute(
+                "SELECT id FROM code_revisions WHERE session_id=? AND revision_no=?",
+                (sid, d["base_code_revision"]),
+            ).fetchone()
+            if base_row:
+                base = c.db.get(conn, "code_revisions", base_row[0], sid)
+            elif d["base_code_revision"] == 0:
+                base = {"content": "", "revision": 0}
+            else:
+                raise DomainError("STALE_BASE", "请求引用的代码版本尚未保存。", 409)
             response_id = uid()
             body = {
                 "command": d,
                 "status": "QUEUED",
                 "response_id": response_id,
                 "created_at": c.now(),
+                "base_code": base["content"],
+                "input_sources": attachments,
             }
             c.db.put(conn, "ai_requests", d["request_id"], sid, body)
             c.db.put(
@@ -156,6 +274,7 @@ class AIService:
                 {
                     "request_id": d["request_id"],
                     "response_text": "",
+                    "content_revision": 0,
                     "model_name": self.provider.model,
                     "status": "PENDING",
                     "created_at": c.now(),
@@ -170,12 +289,14 @@ class AIService:
                     for k in (
                         "request_id",
                         "draft_id",
+                        "draft_revision",
+                        "reference_ids",
                         "message_text",
                         "attachment_ids",
                         "retry_of_request_id",
                     )
                 },
-                occurred_at=d["occurred_at"],
+                **c.occurrence(d),
             )
         task = asyncio.create_task(self.generate(sid, d["request_id"], attachments))
         self.tasks[d["request_id"]] = task
@@ -192,7 +313,28 @@ class AIService:
         c = self.core
         with c.db.transaction() as conn:
             request = c.owned(conn, "ai_requests", request_id, sid)
+            session = c.db.session(conn, sid)
+            c.research_access.require(session["participant_id"])
             response = c.owned(conn, "ai_responses", request["response_id"], sid)
+            if text != response["response_text"]:
+                previous = response["response_text"]
+                revision = response.get("content_revision", 0) + 1
+                from app.services.proposals import u16len
+
+                c.db.put(
+                    conn,
+                    "ai_response_chunks",
+                    f"{response['id']}-{revision}",
+                    sid,
+                    {
+                        "response_id": response["id"],
+                        "content_revision": revision,
+                        "delta": text[len(previous) :],
+                        "range": {"start": u16len(previous), "end": u16len(text)},
+                        "created_at": c.now(),
+                    },
+                )
+                response["content_revision"] = revision
             request["status"] = status
             response.update(
                 response_text=text, status="PARTIAL" if status == "FAILED" and text else status
@@ -236,24 +378,42 @@ class AIService:
                 messages = [
                     {
                         "role": "system",
-                        "content": "你是教学资源制作助手。根据用户的要求回答；HTML 作品应自包含、支持点击和触摸。不要声称已经验证学生作品。",
+                        "content": "你是教学资源制作助手。根据用户的要求回答；HTML 作品应自包含、支持点击和触摸。不要声称已经验证学生作品。如需建议替换代码，额外提供一个 proposal fenced code block，内容为严格 JSON，仅有 title 和 code 两个字符串字段，code 为完整 HTML。普通 HTML 代码块只供复制，不会自动成为提议。",
                     }
                 ]
                 for item in history:
                     if item["status"] == "SUCCEEDED":
                         messages.extend(
                             [
-                                {"role": "user", "content": item["command"]["message_text"]},
+                                {
+                                    "role": "user",
+                                    "content": item.get(
+                                        "model_user_text", item["command"]["message_text"]
+                                    ),
+                                },
                                 {
                                     "role": "assistant",
                                     "content": responses[item["id"]]["response_text"],
                                 },
                             ]
                         )
-                user_text = request["command"]["message_text"]
+                user_text = (
+                    request["command"]["message_text"]
+                    + "\n当前代码：\n"
+                    + request.get("base_code", "")
+                )
                 for attachment in attachments:
                     user_text += f"\n\n附件 {attachment['file_name']} 的提取文字：\n{attachment['extracted_text']}"
                 messages.append({"role": "user", "content": user_text})
+                with self.core.db.transaction() as conn:
+                    frozen = self.core.owned(conn, "ai_requests", request_id, sid)
+                    frozen.update(
+                        model_messages=messages,
+                        model_user_text=user_text,
+                        model_name=self.provider.model,
+                        model_input_at=self.core.now(),
+                    )
+                    self.core.db.put(conn, "ai_requests", request_id, sid, frozen)
                 self.checkpoint(sid, request_id, text, "STREAMING")
                 stream = self.provider.stream_chat(messages, attachments, request_id)
                 try:
@@ -273,6 +433,8 @@ class AIService:
                 finally:
                     await stream.aclose()
                 self.checkpoint(sid, request_id, text, "SUCCEEDED")
+                final_request, final_response = self.read(sid, request_id)
+                self.proposals.create(sid, final_request, final_response)
         except asyncio.CancelledError:
             self.checkpoint(
                 sid,
@@ -305,7 +467,13 @@ class AIService:
                 yield (
                     "event: chunk\ndata: "
                     + json.dumps(
-                        {"delta": text[offset:], "response_id": response["id"]}, ensure_ascii=False
+                        {
+                            "delta": text[offset:],
+                            "response_text": text,
+                            "content_revision": response.get("content_revision", 0),
+                            "response_id": response["id"],
+                        },
+                        ensure_ascii=False,
                     )
                     + "\n\n"
                 )

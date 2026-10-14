@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { prepareTask } from './onboarding'
 import { captureEvents } from './evidence'
 const state = () =>
   JSON.parse(fs.readFileSync(path.resolve('../artifacts/e2e-current.json'), 'utf8')) as {
@@ -11,10 +12,11 @@ const state = () =>
 async function enter(page: Page, seat: string) {
   captureEvents(page)
   await page.goto(`/enter?seat=${seat}&token=${state().tokens[seat]}`)
-  await expect(page.getByRole('button', { name: '去工作区', exact: true })).toBeVisible()
+  await prepareTask(page)
+  await expect(page.getByRole('button', { name: '去工作台', exact: true })).toBeVisible()
 }
 async function work(page: Page) {
-  await page.getByRole('button', { name: '去工作区', exact: true }).click()
+  await page.getByRole('button', { name: '去工作台', exact: true }).click()
 }
 async function stateAPI(page: Page) {
   return page.evaluate(async () =>
@@ -41,13 +43,11 @@ test('完整制作：AI、附件、复制、手动运行、计划保活、错误
   await page.screenshot({ path: '../artifacts/task-page.png', fullPage: true })
   await work(page)
   await page.getByLabel('给 AI 的消息').fill('请帮我制作词汇游戏')
-  await page
-    .locator('input[type=file]')
-    .setInputFiles({
-      name: 'unit.txt',
-      mimeType: 'text/plain',
-      buffer: Buffer.from('Unit 1: apple banana orange pear grape peach lemon mango'),
-    })
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'unit.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Unit 1: apple banana orange pear grape peach lemon mango'),
+  })
   await expect(page.getByText('可发送', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '发送 ↑' }).click()
   await expect(page.getByRole('button', { name: '复制代码', exact: true })).toBeVisible()
@@ -68,10 +68,10 @@ test('完整制作：AI、附件、复制、手动运行、计划保活、错误
   await page.getByRole('button', { name: '▶ 运行', exact: true }).click()
   await page.frameLocator('iframe').locator('#counter').click()
   await expect(page.frameLocator('iframe').locator('#counter')).toHaveText('1')
-  await page.getByRole('button', { name: '我的计划', exact: true }).click()
-  await page.getByLabel('计划内容').fill('先明确教材单元，再验证点击反馈。')
-  await page.getByRole('button', { name: '收起计划' }).click()
-  await page.getByRole('button', { name: '← 查看任务' }).click()
+  await page.getByRole('button', { name: '我的备课记录', exact: true }).click()
+  await page.getByLabel('备课记录内容').fill('先明确教材单元，再验证点击反馈。')
+  await page.getByRole('button', { name: '收起备课记录' }).click()
+  await page.getByRole('button', { name: '任务', exact: true }).click()
   await work(page)
   await expect(page.frameLocator('iframe').locator('#counter')).toHaveText('1')
   await page.getByRole('button', { name: '▶ 运行', exact: true }).click()
@@ -106,9 +106,9 @@ test('完整制作：AI、附件、复制、手动运行、计划保活、错误
   await page.reload()
   await work(page)
   await expect(page.getByTestId('code-input')).toContainText('version B')
-  await expect(page.locator('iframe')).toHaveCount(0)
-  await page.getByRole('button', { name: '我的计划', exact: true }).click()
-  await expect(page.getByLabel('计划内容')).toHaveValue('先明确教材单元，再验证点击反馈。')
+  await expect(page.locator('iframe')).toHaveCount(1)
+  await page.getByRole('button', { name: '我的备课记录', exact: true }).click()
+  await expect(page.getByLabel('备课记录内容')).toHaveValue('先明确教材单元，再验证点击反馈。')
   // Browser reports errors intentionally thrown by sandbox fixtures too.
   expect(errors.filter((e) => !e.includes('异常'))).toEqual([])
   await page.getByRole('button', { name: '结束', exact: true }).click()
@@ -127,12 +127,12 @@ test('断开本地 API：草稿、旧预览和事件保留，恢复后补传', a
   await page.getByRole('button', { name: '▶ 运行', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('本地服务')
   await expect(page.frameLocator('iframe').locator('#counter')).toHaveText('0')
-  await page.getByRole('button', { name: '我的计划', exact: true }).click()
-  await page.getByLabel('计划内容').fill('离线计划')
-  await page.getByRole('button', { name: '收起计划' }).click()
+  await page.getByRole('button', { name: '我的备课记录', exact: true }).click()
+  await page.getByLabel('备课记录内容').fill('离线计划')
+  await page.getByRole('button', { name: '收起备课记录' }).click()
   await page.unroute('**/api/v1/**')
   await page.getByRole('button', { name: '▶ 运行', exact: true }).click()
-  await page.getByRole('button', { name: '我的计划', exact: true }).click()
+  await page.getByRole('button', { name: '我的备课记录', exact: true }).click()
   await page.locator('.plan-status').click()
   await expect.poll(async () => (await stateAPI(page)).code.content).toContain('offline')
   await expect(page.getByRole('button', { name: '0 条待同步', exact: true })).toBeVisible({
@@ -164,9 +164,7 @@ test('三个隔离浏览器上下文不会串会话，同一会话重复标签�
   }
   const duplicate = await contexts[0]!.newPage()
   await duplicate.goto('/task')
-  await expect(
-    duplicate.getByText('此会话已在另一个标签页打开。请关闭重复标签页后重新加载。'),
-  ).toBeVisible()
+  await expect(duplicate.getByText(/此会话已在另一个标签页/)).toBeVisible()
   await duplicate.close()
   for (const page of pages) {
     await page.getByRole('button', { name: '结束', exact: true }).click()

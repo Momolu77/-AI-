@@ -146,11 +146,25 @@ class AttachmentService:
             c.emit(conn, sid, event, payload)
         return {"id": attachment_id, "session_id": sid, **body}
 
-    def remove(self, sid, attachment_id):
+    def remove(self, sid, attachment_id, command):
         c = self.core
         with c.db.transaction() as conn:
             c.active(conn, sid)
             body = c.owned(conn, "attachments", attachment_id, sid)
+            if body["status"] == "REMOVED":
+                return body
             body["status"] = "REMOVED"
+            c.emit(
+                conn,
+                sid,
+                "attachment_removed",
+                {
+                    "attachment_id": attachment_id,
+                    "remove_reason": "user_action",
+                    "draft_id": command.draft_id,
+                    "draft_revision": command.draft_revision,
+                },
+                **c.occurrence(command.model_dump()),
+            )
             c.db.put(conn, "attachments", attachment_id, sid, body)
         return body

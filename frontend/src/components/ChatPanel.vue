@@ -1,17 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import ResponseView from './ResponseView.vue'
+import ProposalCard from './ProposalCard.vue'
 import { useWorkbench } from '../stores/workbench'
 import type { AIResponse } from '../types'
 const store = useWorkbench(),
   fileInput = ref<HTMLInputElement>(),
   messages = ref<HTMLDivElement>()
-const rendered = (text: string) =>
-  DOMPurify.sanitize(marked.parse(text, { async: false }), {
-    FORBID_TAGS: ['img', 'iframe', 'video', 'audio', 'style'],
-    FORBID_ATTR: ['style'],
-  })
 const responseFor = (id: string) => store.responses.find((r) => r.request_id === id)
 const codeBlocks = (response: AIResponse) =>
   [...response.response_text.matchAll(/```(?:html|javascript|css|js)?\s*\n([\s\S]*?)```/g)].map(
@@ -32,18 +27,20 @@ async function choose(event: Event) {
 }
 </script>
 <template>
-  <section class="panel chat-panel">
+  <section class="panel chat-panel" data-region="chat">
     <header class="panel-heading">
-      <h2>AI 对话</h2>
-      <span class="subtle">{{
-        store.task?.ai_provider === 'fake' ? '本地测试模型' : 'DeepSeek'
-      }}</span>
+      <div class="panel-title">
+        <h2>AI 对话</h2>
+        <span class="subtle">{{
+          store.task?.ai_provider === 'fake' ? '本地测试模型' : 'DeepSeek'
+        }}</span>
+      </div>
     </header>
     <div ref="messages" class="messages">
       <div v-if="!store.requests.length" class="chat-empty">
         <span class="small-symbol">✦</span>
         <h3>从你的想法开始</h3>
-        <p>描述你想制作的教学游戏，也可以添加教材或说明文件。</p>
+        <p>描述你想制作的教学互动网站，也可以添加教材或说明文件。</p>
         <p class="subtle">回复中的代码可以自行复制到编辑器。</p>
       </div>
       <article v-for="request in store.requests" :key="request.id" class="exchange">
@@ -58,11 +55,12 @@ async function choose(event: Event) {
           <span class="message-author"
             >AI <small>{{ responseFor(request.id)?.model_name }}</small></span
           >
-          <div
-            v-if="responseFor(request.id)"
-            class="markdown"
-            v-html="rendered(responseFor(request.id)!.response_text)"
-          ></div>
+          <ResponseView v-if="responseFor(request.id)" :response="responseFor(request.id)!" />
+          <ProposalCard
+            v-for="proposal in store.proposals.filter((p) => p.response_id === request.response_id)"
+            :key="proposal.id"
+            :proposal="proposal"
+          />
           <span v-if="['QUEUED', 'STREAMING'].includes(request.status)" class="generating">{{
             request.status === 'QUEUED' ? '等待生成…' : '正在回复…'
           }}</span>
@@ -112,6 +110,21 @@ async function choose(event: Event) {
       </button>
     </div>
     <div class="composer">
+      <ul class="attachment-list">
+        <li v-for="item in store.references" :key="item.reference_id">
+          <span
+            >资料引用 ·
+            {{ store.resources.find((r) => r.id === item.resource_id)?.title || item.resource_id }}
+            · {{ item.resource_version }}
+            <span v-if="item.page !== null"> · 文件第 {{ item.page }} 页<span v-if="item.printed_page != null">（书页 {{ item.printed_page }}）</span></span></span
+          ><button
+            :disabled="!store.active"
+            @click="store.removeReference(item).catch(store.report)"
+          >
+            移除引用
+          </button>
+        </li>
+      </ul>
       <ul v-if="store.selected.length" class="attachment-list">
         <li v-for="item in store.selected" :key="item.id">
           <div>

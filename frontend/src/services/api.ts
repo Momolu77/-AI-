@@ -1,3 +1,5 @@
+export const writerId = sessionStorage.getItem('writer-id') || crypto.randomUUID()
+sessionStorage.setItem('writer-id', writerId)
 let token = ''
 export const setToken = (value: string) => {
   token = value
@@ -22,6 +24,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       headers: {
         ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
         Authorization: 'Bearer ' + token,
+        'X-Writer-Id': writerId,
         ...options.headers,
       },
     })
@@ -29,14 +32,19 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     throw new ApiError('NETWORK', '本地服务暂未连接，内容已保留，请重试。', true, 0)
   }
   const body = await response.json()
+  if (body.code === 'RESEARCH_STOPPED') window.dispatchEvent(new Event('research-stopped'))
   if (!response.ok)
     throw new ApiError(body.code, body.message || '请求失败', body.retryable, response.status)
   return body as T
 }
 export const post = <T>(path: string, body?: unknown) => {
-  const command = body && typeof body === 'object' ? body as Record<string, unknown> : {}
+  const command = body && typeof body === 'object' ? (body as Record<string, unknown>) : {}
   const key = command.request_id ?? command.submission_id ?? command.run_id
-  return api<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), headers: typeof key === 'string' ? { 'Idempotency-Key': key } : {} })
+  return api<T>(path, {
+    method: 'POST',
+    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: typeof key === 'string' ? { 'Idempotency-Key': key } : {},
+  })
 }
 
 export async function sse(path: string, receive: (event: string, data: unknown) => void) {

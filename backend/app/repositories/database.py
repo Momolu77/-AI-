@@ -5,6 +5,7 @@ from contextlib import closing, contextmanager
 from app.settings import ROOT
 
 TABLES = {
+    "session_technical",
     "attachments",
     "ai_requests",
     "ai_responses",
@@ -14,6 +15,12 @@ TABLES = {
     "snapshots",
     "code_revisions",
     "planner_revisions",
+    "resource_references",
+    "request_drafts",
+    "draft_revisions",
+    "ai_response_chunks",
+    "ai_proposals",
+    "proposal_applications",
 }
 
 

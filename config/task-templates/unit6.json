@@ -1,0 +1,242 @@
+{
+  "task_id": "unit6",
+  "version": "unit6-v3",
+  "task_content_version": "unit6-task-v2",
+  "rubric_version": "unit6-four-dimensions-v1",
+  "reference_mode": "current_page",
+  "title": "英语互动学习网页制作",
+  "summary": "面向【外研社七上英语Unit6 Fantastic friends】",
+  "description": "你是一名初中英语教师，为了提高学生的课堂参与度，你准备在七上Unit6 Fantastic friends学习中设计一些互动学习活动网页，这些活动可以穿插在课前课中课后从而服务教学。你可以使用平台中的生成式 AI，完成教材分析、教学活动选择和构思、网站制作和修改。",
+  "constraints": [
+    "内容需来自所提供的【外研社七上英语Unit 6】。",
+    "互动设计服务于明确的教学目标，帮助学生理解、练习和运用知识。",
+    "学生完成操作后，网站能够提供适当的反馈。",
+    "网站能够正常运行，核心功能可以实际使用。"
+  ],
+  "basic_requirements": [],
+  "rubric": [
+    {
+      "dimension": "教学目标匹配",
+      "description": "互动活动是否服务于明确的单元学习目标"
+    },
+    {
+      "dimension": "内容准确性",
+      "description": "英语知识、题目、答案及反馈是否正确"
+    },
+    {
+      "dimension": "互动功能",
+      "description": "学生能否实际操作，回答后是否有合理反馈"
+    },
+    {
+      "dimension": "教学支持",
+      "description": "活动是否帮助学生理解、练习或运用知识"
+    }
+  ],
+  "resources": [
+    {
+      "id": "unit6-textbook",
+      "version": "unit6-source-v2",
+      "title": "七年级上册 Unit 6: Fantastic friends（含相关附录）",
+      "type": "textbook",
+      "file": "unit6-fantastic-friends-source-v2.pdf",
+      "reference_mode": "current_page",
+      "printed_pages": [
+        null,
+        null,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        118,
+        130,
+        131,
+        132,
+        150,
+        151,
+        152,
+        158,
+        159
+      ],
+      "source_pdf_pages": [
+        5,
+        6,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        123,
+        135,
+        136,
+        137,
+        155,
+        156,
+        157,
+        163,
+        164
+      ],
+      "page_mapping_file": "unit6-fantastic-friends-source-v2.mapping.json",
+      "text_status": "ocr_with_reviewed_page_text",
+      "reviewed_text_file": "unit6-fantastic-friends-source-v2.reviewed.json"
+    }
+  ],
+  "examples": [],
+  "publication_status": "draft",
+  "conditions": {
+    "task_duration_minutes": null,
+    "allowed_help": null,
+    "consent_version": null,
+    "retention_policy": null
+  },
+  "prerequisite": {
+    "version": "background-v2-refusal",
+    "questions": [
+      {
+        "id": "Q1",
+        "label": "你使用 HTML / CSS / JavaScript 的经验？",
+        "options": [
+          {
+            "value": 0,
+            "label": "从未使用"
+          },
+          {
+            "value": 1,
+            "label": "阅读过代码"
+          },
+          {
+            "value": 2,
+            "label": "制作过简单页面"
+          },
+          {
+            "value": 3,
+            "label": "完成过完整项目"
+          }
+        ],
+        "allow_refusal": true
+      },
+      {
+        "id": "Q2",
+        "label": "你使用生成式 AI 的频率？",
+        "options": [
+          {
+            "value": 1,
+            "label": "从不"
+          },
+          {
+            "value": 2,
+            "label": "很少"
+          },
+          {
+            "value": 3,
+            "label": "有时"
+          },
+          {
+            "value": 4,
+            "label": "经常"
+          },
+          {
+            "value": 5,
+            "label": "每天"
+          }
+        ],
+        "allow_refusal": true
+      },
+      {
+        "id": "Q3",
+        "label": "你是否用 AI 辅助编写过代码？",
+        "options": [
+          {
+            "value": "yes",
+            "label": "是"
+          },
+          {
+            "value": "no",
+            "label": "否"
+          }
+        ],
+        "allow_refusal": true
+      },
+      {
+        "id": "Q4",
+        "label": "你对教学网页设计的熟悉程度？",
+        "options": [
+          {
+            "value": 1,
+            "label": "完全不熟悉"
+          },
+          {
+            "value": 2,
+            "label": "不太熟悉"
+          },
+          {
+            "value": 3,
+            "label": "一般"
+          },
+          {
+            "value": 4,
+            "label": "比较熟悉"
+          },
+          {
+            "value": 5,
+            "label": "非常熟悉"
+          }
+        ],
+        "allow_refusal": true
+      },
+      {
+        "id": "Q5",
+        "label": "你对本任务配置教材内容的熟悉程度？",
+        "options": [
+          {
+            "value": 1,
+            "label": "完全不熟悉"
+          },
+          {
+            "value": 2,
+            "label": "不太熟悉"
+          },
+          {
+            "value": 3,
+            "label": "一般"
+          },
+          {
+            "value": 4,
+            "label": "比较熟悉"
+          },
+          {
+            "value": 5,
+            "label": "非常熟悉"
+          }
+        ],
+        "allow_refusal": true
+      }
+    ]
+  },
+  "publication_blockers": [
+    "教材逐页文字已经 AI 辅助视觉校对，正式采集前仍需研究者独立复核。",
+    "任务时限、允许帮助、同意与数据保留安排尚待研究者定稿。"
+  ]
+}

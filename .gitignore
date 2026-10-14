@@ -14,3 +14,9 @@ dist/
 test-results/
 playwright-report/
 *.tsbuildinfo
+
+# Large local textbook PDFs (kept out of GitHub)
+2024新外研版七年级上册电子课本（高清无水印）.pdf
+义务教育教科书•英语（配有听力材料）_七年级_上册_外语教学与研究出版社.pdf
+tmp/textbook-unit6.pdf
+

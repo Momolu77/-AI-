@@ -1,62 +1,22 @@
-import { z } from 'zod'
 import { reactive } from 'vue'
 import { database } from './storage'
 import { api, post } from './api'
 
-const integer = z.number().int().nonnegative(),
-  id = z.string().regex(/^[A-Za-z0-9_-]{1,80}$/)
-const range = z.strictObject({ start: integer, end: integer })
-const changes = z
-  .array(
-    z.strictObject({
-      operation: z.enum(['insert', 'delete', 'replace']),
-      inserted_text: z.string(),
-      deleted_text: z.string(),
-      edit_range: range,
-    }),
-  )
-  .min(1)
-const edit = {
-  edit_changes: changes,
-  content_length_after: integer,
-  edit_started_at: z.iso.datetime({ offset: true }),
-  last_edit_at: z.iso.datetime({ offset: true }),
-  flush_reason: z.enum(['close', 'run', 'send', 'leave', 'submit', 'end', 'paste']),
-}
-export const eventSchemas = {
-  task_viewed: z.strictObject({ task_content_version: z.string() }),
-  example_opened: z.strictObject({ example_id: id }),
-  example_closed: z.strictObject({
-    example_id: id,
-    last_position_sec: z.number().nonnegative(),
-    watched_seconds: z.number().nonnegative(),
-    close_reason: z.enum(['manual', 'navigate', 'end']),
-  }),
-  task_revisited: z.strictObject({ from_page: z.literal('workbench') }),
-  workbench_entered: z.strictObject({ entry_source: z.enum(['first', 'return']) }),
-  planner_opened: z.strictObject({}),
-  planner_edited: z.strictObject({ ...edit, base_plan_revision: integer, plan_revision: integer }),
-  ai_request_edited: z.strictObject({ ...edit, draft_id: id }),
-  ai_response_copied: z.strictObject({ response_id: id, content_type: z.enum(['text', 'code']) }),
-  code_pasted: z.strictObject({
-    pasted_text: z.string(),
-    paste_source: z.enum(['AI response', 'other']),
-    source_response_id: id.nullable(),
-    edit_range: range,
-    code_revision: integer,
-  }),
-  code_edited: z.strictObject({ ...edit, base_code_revision: integer, code_revision: integer }),
-  preview_error_copied: z.strictObject({ error_id: id }),
-  window_left: z.strictObject({ leave_reason: z.string() }),
-  window_returned: z.strictObject({ return_reason: z.string() }),
-  submit_dialog_opened: z.strictObject({}),
-  submit_cancelled: z.strictObject({}),
-}
+import {
+  eventSchemas,
+  eventActors,
+  eventOwners,
+  schemaVersion as SCHEMA_VERSION,
+} from '../generated/event-contract'
+import type { Occurrence } from '../types'
+export { eventSchemas }
 export type EventName = keyof typeof eventSchemas
 export interface EventRecord {
   event_id: string
   event_name: EventName
-  actor: 'student'
+  actor: 'student' | 'system'
+  schema_version: string
+  transport: Occurrence['transport']
   occurred_at: string
   client_sequence_no: number
   payload: unknown
@@ -75,6 +35,9 @@ export interface Job {
 
 export class Collector {
   stats = reactive({ pending: 0, rejected: 0, error: '' })
+  producer = crypto.randomUUID()
+  producerSeq = 0
+  calibrationId: string | null = null
   sending = false
   writeQueue: Promise<unknown> = Promise.resolve()
   constructor(
@@ -101,26 +64,50 @@ export class Collector {
       })
     return this.writeQueue
   }
-  track(name: EventName, payload: unknown = {}) {
-    const value = eventSchemas[name].parse(payload),
-      event_id = crypto.randomUUID(),
-      sequence = this.next()
-    void this.enqueue({
-      id: event_id,
-      session_id: this.sid,
-      sequence,
-      event: {
-        event_id,
-        event_name: name,
-        actor: 'student',
-        occurred_at: this.now(),
-        client_sequence_no: sequence,
-        payload: value,
+  occurrence(actionId: string | null = null): Occurrence {
+    const event_id = crypto.randomUUID()
+    return {
+      event_id,
+      occurred_at: this.now(),
+      transport: {
+        producer_id: this.producer,
+        producer_seq: ++this.producerSeq,
+        raw_time: new Date().toISOString(),
+        monotonic_ms: performance.now(),
+        clock_calibration_id: this.calibrationId,
+        time_source: 'client_clock',
+        action_id: actionId || event_id,
+        causal_parent_ids: [],
+        client_sequence_no: this.next(),
       },
+    }
+  }
+  track(
+    name: EventName,
+    payload: unknown = {},
+    context?: Occurrence,
+    actor?: 'student' | 'system',
+  ) {
+    if (eventOwners[name] !== 'browser') throw new Error('此事件由业务服务记录')
+    const value = eventSchemas[name].parse(payload),
+      occurrence = context || this.occurrence()
+    const event = {
+      schema_version: SCHEMA_VERSION,
+      ...occurrence,
+      event_name: name,
+      actor: actor || (eventActors[name] === 'system' ? 'system' : 'student'),
+      client_sequence_no: occurrence.transport.client_sequence_no!,
+      payload: value,
+    }
+    void this.enqueue({
+      id: event.event_id,
+      session_id: this.sid,
+      sequence: event.client_sequence_no,
+      event,
       status: 'pending',
       attempts: 0,
     })
-    return event_id
+    return event.event_id
   }
   job(path: string, body: unknown, id: string) {
     void this.enqueue({

@@ -1,0 +1,778 @@
+{
+  "schema_version": "teaching-workbench-events-v1.3",
+  "definitions": {
+    "Range": {
+      "object": {
+        "start": "nat",
+        "end": "nat"
+      }
+    },
+    "Edit": {
+      "object": {
+        "operation": {
+          "enum": [
+            "insert",
+            "delete",
+            "replace",
+            "undo",
+            "redo"
+          ]
+        },
+        "inserted_text": "str",
+        "deleted_text": "str",
+        "edit_range": "Range",
+        "base_revision": "nat",
+        "result_revision": "nat"
+      }
+    },
+    "Rect": {
+      "object": {
+        "x": "number",
+        "y": "number",
+        "width": "nonnegative",
+        "height": "nonnegative"
+      }
+    },
+    "Region": {
+      "object": {
+        "region_id": "str",
+        "is_visible": "bool",
+        "bounds": "Rect",
+        "occluded_bounds": {
+          "array": "Rect"
+        }
+      }
+    },
+    "Target": {
+      "object": {
+        "tag": "str",
+        "id": {
+          "nullable": "str"
+        },
+        "role": {
+          "nullable": "str"
+        },
+        "label": "str"
+      }
+    },
+    "Response": {
+      "object": {
+        "question_id": "id",
+        "answer_value": {
+          "union": [
+            "str",
+            "number",
+            "bool"
+          ]
+        }
+      }
+    },
+    "VisibleRange": {
+      "object": {
+        "start": "nat",
+        "end": "nat"
+      }
+    }
+  },
+  "events": {
+    "task_started": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "entry_page": "str"
+      }
+    },
+    "task_prerequisite_completed": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "completed_at": "time",
+        "responses": {
+          "array": "Response"
+        }
+      }
+    },
+    "nav_changed": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "from_page": "str",
+        "to_page": "str",
+        "visit_index": "nat"
+      }
+    },
+    "task_viewed": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "task_content_version": "str"
+      }
+    },
+    "task_revisited": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "from_page": "str",
+        "task_content_version": "str"
+      }
+    },
+    "example_opened": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "example_id": "id",
+        "example_version": "str",
+        "viewer_instance_id": "id",
+        "media_type": {
+          "enum": [
+            "video",
+            "web"
+          ]
+        }
+      }
+    },
+    "example_closed": {
+      "actor": "both",
+      "owner": "browser",
+      "fields": {
+        "example_id": "id",
+        "example_version": "str",
+        "viewer_instance_id": "id",
+        "media_type": {
+          "enum": [
+            "video",
+            "web"
+          ]
+        },
+        "last_position_sec": {
+          "nullable": "nonnegative"
+        },
+        "watched_seconds": {
+          "nullable": "nonnegative"
+        },
+        "close_reason": {
+          "enum": [
+            "manual",
+            "navigate",
+            "end"
+          ]
+        }
+      }
+    },
+    "resource_opened": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "resource_id": "id",
+        "resource_version": "str",
+        "viewer_instance_id": "id",
+        "resource_type": {
+          "enum": [
+            "textbook",
+            "asset"
+          ]
+        },
+        "page": {
+          "nullable": "positive"
+        },
+        "fragment": {
+          "nullable": "str"
+        },
+        "visible_range": {
+          "nullable": "VisibleRange"
+        }
+      }
+    },
+    "resource_view_changed": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "resource_id": "id",
+        "resource_version": "str",
+        "viewer_instance_id": "id",
+        "page": {
+          "nullable": "positive"
+        },
+        "fragment": {
+          "nullable": "str"
+        },
+        "visible_range": {
+          "nullable": "VisibleRange"
+        }
+      }
+    },
+    "resource_closed": {
+      "actor": "both",
+      "owner": "browser",
+      "fields": {
+        "resource_id": "id",
+        "resource_version": "str",
+        "viewer_instance_id": "id",
+        "close_reason": {
+          "enum": [
+            "manual",
+            "navigate",
+            "end"
+          ]
+        }
+      }
+    },
+    "resource_reference_added": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "reference_id": "id",
+        "resource_id": "id",
+        "resource_version": "str",
+        "draft_id": "id",
+        "draft_revision": "nat",
+        "page": {
+          "nullable": "positive"
+        },
+        "fragment": {
+          "nullable": "str"
+        }
+      }
+    },
+    "resource_reference_removed": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "reference_id": "id",
+        "resource_id": "id",
+        "resource_version": "str",
+        "draft_id": "id",
+        "draft_revision": "nat"
+      }
+    },
+    "workbench_entered": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "entry_source": {
+          "enum": [
+            "first",
+            "return"
+          ]
+        }
+      }
+    },
+    "planner_opened": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {}
+    },
+    "planner_edited": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "edit_changes": {
+          "array": "Edit"
+        },
+        "content_length_after": "nat",
+        "edit_started_at": "time",
+        "last_edit_at": "time",
+        "base_plan_revision": "nat",
+        "plan_revision": "nat",
+        "flush_reason": {
+          "enum": [
+            "close",
+            "tab_switch",
+            "leave",
+            "submit",
+            "session_end"
+          ]
+        }
+      }
+    },
+    "file_attached": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "attachment_id": "id",
+        "file_name": "str",
+        "file_type": "str",
+        "file_size": "nat"
+      }
+    },
+    "attachment_failed": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "attachment_id": "id",
+        "failure_stage": "str",
+        "error_type": "str",
+        "error_message": "str"
+      }
+    },
+    "attachment_removed": {
+      "actor": "both",
+      "owner": "service",
+      "fields": {
+        "attachment_id": "id",
+        "remove_reason": {
+          "enum": [
+            "user_action",
+            "session_end"
+          ]
+        },
+        "draft_id": "id",
+        "draft_revision": "nat"
+      }
+    },
+    "ai_request_edited": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "edit_changes": {
+          "array": "Edit"
+        },
+        "content_length_after": "nat",
+        "edit_started_at": "time",
+        "last_edit_at": "time",
+        "draft_id": "id",
+        "base_draft_revision": "nat",
+        "draft_revision": "nat",
+        "flush_reason": {
+          "enum": [
+            "send",
+            "tab_switch",
+            "leave",
+            "submit",
+            "session_end"
+          ]
+        }
+      }
+    },
+    "ai_request_sent": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "request_id": "id",
+        "draft_id": "id",
+        "draft_revision": "nat",
+        "message_text": "str",
+        "attachment_ids": {
+          "array": "id"
+        },
+        "reference_ids": {
+          "array": "id"
+        },
+        "retry_of_request_id": {
+          "nullable": "id"
+        }
+      }
+    },
+    "ai_response_received": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "request_id": "id",
+        "response_id": "id",
+        "response_text": "str",
+        "model_name": "str",
+        "response_status": {
+          "enum": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "ai_response_displayed": {
+      "actor": "system",
+      "owner": "browser",
+      "fields": {
+        "request_id": "id",
+        "response_id": "id",
+        "display_stage": {
+          "enum": [
+            "first_chunk",
+            "complete",
+            "visibility_change"
+          ]
+        },
+        "content_revision": "nat",
+        "rendered_range": "Range",
+        "visible_ranges": {
+          "array": "Range"
+        },
+        "is_visible": "bool"
+      }
+    },
+    "ai_response_failed": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "request_id": "id",
+        "failure_stage": "str",
+        "error_type": "str",
+        "error_message": "str",
+        "retryable": "bool"
+      }
+    },
+    "ai_response_copied": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "response_id": "id",
+        "content_type": {
+          "enum": [
+            "text",
+            "code"
+          ]
+        },
+        "content_revision": "nat",
+        "selection_ranges": {
+          "nullable": {
+            "array": "Range"
+          }
+        }
+      }
+    },
+    "ai_proposal_created": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "proposal_id": "id",
+        "response_id": "id",
+        "proposal_content_ref": "str",
+        "base_code_revision": "nat"
+      }
+    },
+    "ai_proposal_displayed": {
+      "actor": "system",
+      "owner": "browser",
+      "fields": {
+        "proposal_id": "id",
+        "response_id": "id",
+        "proposal_content_ref": "str",
+        "base_code_revision": "nat",
+        "is_visible": "bool"
+      }
+    },
+    "ai_proposal_reviewed": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "proposal_id": "id",
+        "base_code_revision": "nat",
+        "detail_content_ref": "str"
+      }
+    },
+    "ai_proposal_decided": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "proposal_id": "id",
+        "decision": {
+          "enum": [
+            "accept",
+            "reject"
+          ]
+        },
+        "base_code_revision": "nat",
+        "display_event_id": {
+          "nullable": "id"
+        },
+        "decision_display_elapsed_ms": {
+          "nullable": "nonnegative"
+        }
+      }
+    },
+    "ai_proposal_applied": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "proposal_id": "id",
+        "application_id": "id",
+        "retry_of_application_id": {
+          "nullable": "id"
+        },
+        "base_code_revision": "nat",
+        "code_revision": "nat",
+        "edit_changes": {
+          "array": "Edit"
+        }
+      }
+    },
+    "ai_proposal_failed": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "proposal_id": "id",
+        "application_id": "id",
+        "retry_of_application_id": {
+          "nullable": "id"
+        },
+        "failure_stage": "str",
+        "error_type": "str",
+        "error_message": "str",
+        "retryable": "bool"
+      }
+    },
+    "code_pasted": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "pasted_text": "str",
+        "paste_source": {
+          "enum": [
+            "ai_response",
+            "other"
+          ]
+        },
+        "source_response_id": {
+          "nullable": "id"
+        },
+        "edit_range": "Range",
+        "base_code_revision": "nat",
+        "code_revision": "nat"
+      }
+    },
+    "code_edited": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "edit_changes": {
+          "array": "Edit"
+        },
+        "content_length_after": "nat",
+        "edit_started_at": "time",
+        "last_edit_at": "time",
+        "base_code_revision": "nat",
+        "code_revision": "nat",
+        "delta_ids": {
+          "array": "id"
+        },
+        "flush_reason": {
+          "enum": [
+            "run",
+            "tab_switch",
+            "leave",
+            "submit",
+            "session_end",
+            "idle",
+            "paste",
+            "proposal"
+          ]
+        }
+      }
+    },
+    "code_edit_delta": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "delta_id": "id",
+        "base_code_revision": "nat",
+        "code_revision": "nat",
+        "changes": {
+          "array": "Edit"
+        },
+        "trigger_reason": {
+          "enum": [
+            "debounce",
+            "run",
+            "tab_switch",
+            "leave",
+            "submit",
+            "session_end",
+            "idle",
+            "paste",
+            "proposal"
+          ]
+        }
+      }
+    },
+    "preview_run": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "run_id": "id",
+        "code_revision": "nat",
+        "code_snapshot_ref": {
+          "nullable": "str"
+        },
+        "save_status": {
+          "enum": [
+            "saved",
+            "failed"
+          ]
+        }
+      }
+    },
+    "preview_save_failed": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "run_id": "id",
+        "code_revision": "nat",
+        "error_type": "str",
+        "error_message": "str",
+        "retryable": "bool"
+      }
+    },
+    "preview_ready": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "run_id": "id"
+      }
+    },
+    "preview_error_detected": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "run_id": "id",
+        "error_id": "id",
+        "error_phase": {
+          "enum": [
+            "load",
+            "interaction"
+          ]
+        },
+        "error_type": "str",
+        "error_message": "str",
+        "line": {
+          "nullable": "nat"
+        },
+        "column": {
+          "nullable": "nat"
+        },
+        "stack": {
+          "nullable": "str"
+        }
+      }
+    },
+    "preview_error_copied": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "error_id": "id"
+      }
+    },
+    "preview_interacted": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "run_id": "id",
+        "interaction_type": {
+          "enum": [
+            "activate",
+            "change",
+            "input_commit",
+            "submit"
+          ]
+        },
+        "target": "Target",
+        "outcome": {
+          "nullable": "str"
+        },
+        "outcome_source": {
+          "enum": [
+            "artifact",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "ui_region_visibility_changed": {
+      "actor": "system",
+      "owner": "browser",
+      "fields": {
+        "change_reason": {
+          "enum": [
+            "fullscreen_enter",
+            "fullscreen_exit",
+            "planner_open",
+            "planner_close",
+            "console_open",
+            "console_close",
+            "drag",
+            "nav"
+          ]
+        },
+        "regions": {
+          "array": "Region"
+        },
+        "viewport": {
+          "object": {
+            "width": "nonnegative",
+            "height": "nonnegative",
+            "device_pixel_ratio": "nonnegative"
+          }
+        }
+      }
+    },
+    "window_left": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "leave_reason": "str"
+      }
+    },
+    "window_returned": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {
+        "return_reason": "str"
+      }
+    },
+    "submit_dialog_opened": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {}
+    },
+    "submit_confirmed": {
+      "actor": "student",
+      "owner": "service",
+      "fields": {
+        "submission_id": "id",
+        "code_revision": "nat",
+        "plan_revision": "nat",
+        "snapshot_id": "id"
+      }
+    },
+    "submit_cancelled": {
+      "actor": "student",
+      "owner": "browser",
+      "fields": {}
+    },
+    "submit_succeeded": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "submission_id": "id",
+        "snapshot_id": "id"
+      }
+    },
+    "submit_failed": {
+      "actor": "system",
+      "owner": "service",
+      "fields": {
+        "submission_id": "id",
+        "error_type": "str",
+        "error_message": "str",
+        "retryable": "bool"
+      }
+    },
+    "task_ended": {
+      "actor": "both",
+      "owner": "service",
+      "fields": {
+        "end_reason": "str"
+      }
+    },
+    "capture_sync_marker": {
+      "actor": "system",
+      "owner": "capture",
+      "fields": {
+        "marker_id": "id",
+        "recording_id": "id",
+        "displayed_at": "time",
+        "clock_calibration_id": {
+          "nullable": "id"
+        }
+      }
+    }
+  }
+}

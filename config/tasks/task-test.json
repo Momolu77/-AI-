@@ -1,13 +1,202 @@
 {
   "task_id": "task-test",
-  "version": "local-v1.1-20260922",
-  "title": "为一节英语课，制作一个词汇游戏",
-  "description": "选择真实教材中的一个单元，与 AI 协作制作一份学生可以参与的英语词汇教学游戏。你可以随时查看任务、记录计划、修改代码并运行预览。",
+  "version": "local-v1.3-20261012",
+  "title": "英语课堂互动网站制作（本地测试任务）",
+  "description": "围绕给定教学内容，设计并制作可供学生参与的英语课堂互动网站。说明适用年级、教学目标及活动规则，使用预览检查交互与反馈。本配置及示例教材仅用于系统测试，正式任务由研究者在采集前发布。",
   "constraints": [
-    "注明真实教材的版本、年级与单元，使用该单元的 8–10 个真实词汇。",
-    "提交一个包含 HTML、CSS 和 JavaScript 的 HTML 文件，资源内嵌，能够离线运行。",
-    "同时支持鼠标点击和触摸操作，单轮游戏控制在 5 分钟以内。",
-    "让游戏规则、反馈和学习目标清晰可见。提交前可在右侧预览中自行体验。"
+    "提交可离线运行的单个 HTML 文件，内嵌 CSS、JavaScript 和所需资源。",
+    "支持课堂中的鼠标点击与触摸操作。",
+    "明确适用年级、教学目标、活动规则与交互反馈。",
+    "可与 AI 协作，提交前自行检查作品。"
   ],
-  "examples": [{"id":"demo-local","title":"本地交互示意","description":"12 秒的操作示意，仅展示交互形式，不是教材内容模板。","url":"/media/examples/demo-local","file":"demo.webm","duration":12}]
+  "examples": [
+    {
+      "id": "demo-local",
+      "title": "本地交互示意",
+      "description": "12 秒的操作示意，仅展示交互形式，不是教材内容模板。",
+      "url": "/media/examples/demo-local",
+      "file": "demo.webm",
+      "duration": 12,
+      "version": "demo-v1",
+      "media_type": "video"
+    },
+    {
+      "id": "demo-web",
+      "title": "网页交互示例（测试素材）",
+      "description": "仅展示操作形式；不代表本任务要求。",
+      "url": "/media/examples/demo-web",
+      "file": "demo.html",
+      "duration": 0,
+      "version": "demo-v1",
+      "media_type": "web"
+    }
+  ],
+  "summary": "使用 AI 协作完成英语课堂互动网站。",
+  "prerequisite": {
+    "version": "background-v2-refusal",
+    "questions": [
+      {
+        "id": "Q1",
+        "label": "你使用 HTML / CSS / JavaScript 的经验？",
+        "options": [
+          {
+            "value": 0,
+            "label": "从未使用"
+          },
+          {
+            "value": 1,
+            "label": "阅读过代码"
+          },
+          {
+            "value": 2,
+            "label": "制作过简单页面"
+          },
+          {
+            "value": 3,
+            "label": "完成过完整项目"
+          }
+        ],
+        "allow_refusal": true
+      },
+      {
+        "id": "Q2",
+        "label": "你使用生成式 AI 的频率？",
+        "options": [
+          {
+            "value": 1,
+            "label": "从不"
+          },
+          {
+            "value": 2,
+            "label": "很少"
+          },
+          {
+            "value": 3,
+            "label": "有时"
+          },
+          {
+            "value": 4,
+            "label": "经常"
+          },
+          {
+            "value": 5,
+            "label": "每天"
+          }
+        ],
+        "allow_refusal": true
+      },
+      {
+        "id": "Q3",
+        "label": "你是否用 AI 辅助编写过代码？",
+        "options": [
+          {
+            "value": "yes",
+            "label": "是"
+          },
+          {
+            "value": "no",
+            "label": "否"
+          }
+        ],
+        "allow_refusal": true
+      },
+      {
+        "id": "Q4",
+        "label": "你对教学网页设计的熟悉程度？",
+        "options": [
+          {
+            "value": 1,
+            "label": "完全不熟悉"
+          },
+          {
+            "value": 2,
+            "label": "不太熟悉"
+          },
+          {
+            "value": 3,
+            "label": "一般"
+          },
+          {
+            "value": 4,
+            "label": "比较熟悉"
+          },
+          {
+            "value": 5,
+            "label": "非常熟悉"
+          }
+        ],
+        "allow_refusal": true
+      },
+      {
+        "id": "Q5",
+        "label": "你对本任务配置教材内容的熟悉程度？",
+        "options": [
+          {
+            "value": 1,
+            "label": "完全不熟悉"
+          },
+          {
+            "value": 2,
+            "label": "不太熟悉"
+          },
+          {
+            "value": 3,
+            "label": "一般"
+          },
+          {
+            "value": 4,
+            "label": "比较熟悉"
+          },
+          {
+            "value": 5,
+            "label": "非常熟悉"
+          }
+        ],
+        "allow_refusal": true
+      }
+    ]
+  },
+  "resources": [
+    {
+      "id": "sample-textbook",
+      "version": "sample-v2",
+      "title": "示例教学材料（合成测试材料）",
+      "type": "textbook",
+      "file": "sample-textbook.pdf",
+      "reference_mode": "current_page",
+      "printed_pages": [
+        "T1",
+        "T2",
+        "T3"
+      ]
+    }
+  ],
+  "task_content_version": "local-v1.3-20261012",
+  "rubric_version": "rubric-four-v1",
+  "reference_mode": "current_page",
+  "rubric": [
+    {
+      "dimension": "教学目标匹配",
+      "description": "互动活动是否服务于明确的单元学习目标"
+    },
+    {
+      "dimension": "内容准确性",
+      "description": "英语知识、题目、答案及反馈是否正确"
+    },
+    {
+      "dimension": "互动功能",
+      "description": "学生能否实际操作，回答后是否有合理反馈"
+    },
+    {
+      "dimension": "教学支持",
+      "description": "活动是否帮助学生理解、练习或运用知识"
+    }
+  ],
+  "basic_requirements": [
+    "内容来自所提供的单元教材，并符合七年级学生的学习需要。",
+    "至少包含一个学生能够实际操作的互动活动。",
+    "学生完成操作后，网站能够提供适当的反馈。",
+    "互动设计服务于明确的教学目标，而非仅用于装饰。",
+    "网站能够正常运行，核心功能可以实际使用。"
+  ]
 }

@@ -26,8 +26,14 @@ class Settings:
     heartbeat: int = 15
     session_timeout: int = 1800
     attachment_max: int = 10485760
+    resource_max: int = 104857600
     attachment_types: str = ".txt,.md,.html,.pdf,.docx"
     code_max: int = 1048576
+    research_restrictions: Path | None = None
+
+    @property
+    def restrictions_path(self):
+        return self.research_restrictions or self.data_dir.parent / "research-restrictions.json"
 
     @classmethod
     def load(cls, env_file: str | Path = ROOT / ".env.local"):
@@ -59,8 +65,12 @@ class Settings:
             heartbeat=int(values.get("HEARTBEAT_INTERVAL_SEC", 15)),
             session_timeout=int(values.get("SESSION_TIMEOUT_SEC", 1800)),
             attachment_max=int(values.get("ATTACHMENT_MAX_BYTES", 10485760)),
+            resource_max=int(values.get("RESOURCE_MAX_BYTES", 104857600)),
             attachment_types=values.get("ATTACHMENT_TYPES", ".txt,.md,.html,.pdf,.docx"),
             code_max=int(values.get("CODE_MAX_BYTES", 1048576)),
+            research_restrictions=path(values["RESEARCH_RESTRICTIONS_FILE"])
+            if values.get("RESEARCH_RESTRICTIONS_FILE")
+            else None,
         )
         if len(settings.secret) < 32:
             raise ValueError("JWT_SECRET 至少 32 字符。请先运行 scripts/local_init.py。")
@@ -73,6 +83,15 @@ class Settings:
             raise ValueError("AI_PROVIDER 只能为 fake 或 deepseek")
         if settings.ai_provider == "deepseek" and not settings.deepseek_key:
             raise ValueError("DeepSeek 模式需要 DEEPSEEK_API_KEY")
-        if min(settings.ai_concurrency, settings.session_timeout, settings.heartbeat) < 1:
+        if (
+            min(
+                settings.ai_concurrency,
+                settings.session_timeout,
+                settings.heartbeat,
+                settings.attachment_max,
+                settings.resource_max,
+            )
+            < 1
+        ):
             raise ValueError("并发、心跳与超时配置必须为正数")
         return settings

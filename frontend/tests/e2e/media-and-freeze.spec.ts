@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { prepareTask } from './onboarding'
 import { captureEvents } from './evidence'
 
-test.beforeEach(({page}) => { captureEvents(page) })
+test.beforeEach(({ page }) => {
+  captureEvents(page)
+})
 
 function entry(seat: string) {
   const { tokens } = JSON.parse(
@@ -13,6 +16,8 @@ function entry(seat: string) {
 }
 test('视频不自动播放、暂停后重开保留位置、404 不阻止进入', async ({ page }) => {
   await page.goto(entry('03'))
+  await prepareTask(page)
+  await page.getByRole('button', { name: '示例', exact: true }).click()
   await page.getByRole('button', { name: /本地交互示意/ }).click()
   const video = page.locator('video')
   await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThan(0)
@@ -36,7 +41,7 @@ test('视频不自动播放、暂停后重开保留位置、404 不阻止进入'
   await page.getByRole('button', { name: /本地交互示意/ }).click()
   await expect(page.getByText('视频暂时无法加载。')).toBeVisible()
   await page.getByRole('button', { name: '关闭示例' }).click()
-  await page.getByRole('button', { name: '去工作区', exact: true }).click()
+  await page.getByRole('button', { name: '工作台', exact: true }).click()
   await expect(page.getByTestId('code-input')).toBeVisible()
   await page.getByRole('button', { name: '结束', exact: true }).click()
   await page.getByRole('button', { name: '确认结束', exact: true }).click()
@@ -45,7 +50,8 @@ test('视频不自动播放、暂停后重开保留位置、404 不阻止进入'
 
 test('提交期间继续编辑，快照固定为确认时文本，下一次提交保存新版本', async ({ page }) => {
   await page.goto(entry('03'))
-  await page.getByRole('button', { name: '去工作区', exact: true }).click()
+  await prepareTask(page)
+  await page.getByRole('button', { name: '工作台', exact: true }).click()
   const editor = page.getByTestId('code-input')
   await editor.click()
   await page.keyboard.insertText('<h1>版本 A</h1>')

@@ -12,7 +12,14 @@ createApp(App)
       components: { VApp, VDialog, VBtn },
       theme: {
         defaultTheme: 'light',
-        themes: { light: { colors: { primary: '#24664f', secondary: '#b16d35' } } },
+        themes: {
+          light: {
+            colors: {
+              primary: '#4f46e5', secondary: '#475569', background: '#f8fafc',
+              surface: '#ffffff', error: '#b91c1c', success: '#15803d', warning: '#92400e',
+            },
+          },
+        },
       },
     }),
   )

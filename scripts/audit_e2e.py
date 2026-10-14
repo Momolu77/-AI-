@@ -16,6 +16,7 @@ def main():
     run = json.loads((ROOT / "artifacts/e2e-current.json").read_text(encoding="utf-8"))
     data = Path(run["data_dir"])
     core = Core(Settings(data_dir=data, database=data / "app.db", secret="audit" * 10, env="test"))
+    core.db.migrate()
     output = data / "audit"
     output.mkdir(exist_ok=True)
     reports = []

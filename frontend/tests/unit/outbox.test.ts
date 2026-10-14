@@ -12,12 +12,16 @@ describe('持久化事件 outbox', () => {
     const collector = new Collector('concurrent', () => '2026-09-22T00:00:00.000Z')
     const first = collector.track('planner_opened')
     let release!: (response: Response) => void
-    const blocked = new Promise<Response>((resolve) => { release = resolve })
+    const blocked = new Promise<Response>((resolve) => {
+      release = resolve
+    })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementationOnce(() => blocked)
     const periodic = collector.flush()
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
     const second = collector.track('submit_cancelled')
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ results: [{ event_id: second, status: 'accepted' }] })))
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ results: [{ event_id: second, status: 'accepted' }] })),
+    )
     const ending = collector.flush()
     release(new Response(JSON.stringify({ results: [{ event_id: first, status: 'accepted' }] })))
     await Promise.all([periodic, ending])
